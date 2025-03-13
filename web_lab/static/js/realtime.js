@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastAnimationTime = 0;
     let floatingSpeed = 0.005;
     let startY = 0; // 調整初始Y軸位置
+    let monsterDialogueTimer = null; // 怪物對話計時器
+    let lastMonsterHPThreshold = 100; // 上次觸發動作的血量閾值
     
     // 初始化怪物3D場景
     initMonsterScene();
@@ -38,11 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
         scene = new THREE.Scene();
         scene.background = null; // 確保背景透明
     
-        // 設置相機 - 完全重新調整相機參數
-        camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+        // 設置相機 - 調整相機參數以顯示全身模型
+        camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
         // 將相機位置調整到更遠的位置
-        camera.position.set(0, 0, 12); // 調整相機距離更遠
-        camera.lookAt(0, -2, 0); // 視角更向下
+        camera.position.set(0, 0, 100); // 增加相機距離，從20調整到30
+        camera.lookAt(0, -3, 0); // 調整視角更向下，從-3調整到-5
     
         // 設置渲染器
         renderer = new THREE.WebGLRenderer({
@@ -51,10 +53,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // 調整渲染大小 - 使用固定尺寸
-        const size = 300; // 固定大小
+        const size = 300; // 調整尺寸
         renderer.setSize(size, size);
         renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setClearColor(0x000000, 0); // 設置透明背景
+        renderer.setClearColor(0x000000, 0);
     
         // 將渲染器添加到特定容器中 - 修正位置問題
         const monsterContainer = document.getElementById('monster-scene-container');
@@ -73,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return; // 如果找不到容器，則退出初始化
         }
     
-        // 增強光源設置
+
         // 環境光 - 提高亮度
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // 增加環境光強度
         scene.add(ambientLight);
@@ -108,9 +110,20 @@ document.addEventListener('DOMContentLoaded', () => {
         animate();
     }
 
+
+
     function loadMonsterModel(state) {
         const loader = new THREE.GLTFLoader();
-        const modelPath = `/static/models/${state}.glb`;
+        // 根據狀態選擇不同的模型文件
+        let modelPath = `/static/models/${state}.glb`;
+        
+        // 如果是特殊狀態但文件不存在，使用默認模型
+        const fallbackStates = {
+            'run': 'idle',
+            'attack': 'idle',
+            'provocative': 'idle',
+            'start': 'idle'
+        };
         
         loader.load(
             modelPath,
@@ -122,9 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 monster = gltf.scene;
                 // 調整模型大小和位置
-                monster.scale.set(1.2, 1.2, 1.2); // 縮小模型比例
-                monster.position.set(0, -1.5, 0); // 調整位置，避免穿模
-                monster.rotation.y = Math.PI; // 確保模型正面朝向相機
+                monster.scale.set(0.5, 0.5, 0.5);
+                monster.position.set(0, -3, 0);
+                monster.rotation.y = 0; // 確保模型正
                 
                 // 遍歷模型的所有部分，確保材質正確
                 monster.traverse((child) => {
@@ -160,11 +173,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     gltf.animations.forEach((clip) => {
                         const action = monsterAnimationMixer.clipAction(clip);
                         monsterAnimations[state] = action;
+                        
+                        // 如果是逃跑動畫，設置只播放一次
+                        if (state === 'run') {
+                            action.setLoop(THREE.LoopOnce);
+                            action.clampWhenFinished = true;
+                        }
+                        
                         action.play();
                     });
                 }
                 
                 monsterState = state;
+
+                // 如果是新載入的怪物，根據當前血量顯示適當的對話
+                if (monsterHP <= 75 && monsterHP > 50) {
+                    showMonsterDialogue('你的攻擊還不錯嘛，再加把勁！');
+                } else if (monsterHP <= 50 && monsterHP > 25) {
+                    showMonsterDialogue('唔...你的力量讓我感到威脅了...');
+                } else if (monsterHP <= 25 && monsterHP > 0) {
+                    showMonsterDialogue('我快撐不住了...再堅持一下！');
+                }
+
             },
             function (progress) {
                 console.log('載入進度:', (progress.loaded / progress.total * 100) + '%');
@@ -178,6 +208,98 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         );
     }
+
+    function showMonsterDialogue(text, duration = 4000) {
+        // 檢查是否已存在對話框，如果有則移除
+        const existingDialogue = document.querySelector('.monster-dialogue');
+        if (existingDialogue) {
+            existingDialogue.remove();
+        }
+        
+        // 創建新的對話框
+        const dialogue = document.createElement('div');
+        dialogue.className = 'monster-dialogue';
+        dialogue.textContent = text;
+        
+        // 添加到怪物容器中
+        const monsterContainer = document.getElementById('monster-scene-container');
+        if (monsterContainer) {
+            monsterContainer.parentElement.appendChild(dialogue);
+            
+            // 調整對話框位置，將其放在更下方
+            dialogue.style.top = '-10px'; // 從-60px調整到-30px，讓對話框更靠近怪獸
+
+            // 設置定時器自動移除對話框
+            if (monsterDialogueTimer) {
+                clearTimeout(monsterDialogueTimer);
+            }
+            
+            monsterDialogueTimer = setTimeout(() => {
+                dialogue.classList.add('fade-out');
+                setTimeout(() => dialogue.remove(), 500);
+            }, duration);
+            
+            // 確保對話框完全可見
+            setTimeout(() => {
+                const dialogueRect = dialogue.getBoundingClientRect();
+                const containerRect = monsterContainer.getBoundingClientRect();
+                
+                // 如果對話框頂部超出視窗，調整位置
+                if (dialogueRect.top < 0) {
+                    dialogue.style.top = '0px'; // 確保至少在視窗內
+                    dialogue.style.bottom = 'auto';
+                }
+            }, 10);
+        }
+    }
+
+    function updateMonsterStateByHP() {
+        // 血量閾值和對應的狀態及對話
+        const hpThresholds = [
+            { threshold: 75, state: 'provocative', dialogue: '哈哈，就這麼點能耐嗎，真遜！' },
+            { threshold: 50, state: 'attack', dialogue: '你打得我好痛！我要反擊了！' },
+            { threshold: 25, state: 'idle', dialogue: '我...我快不行了...' },
+            { threshold: 0, state: 'run', dialogue: '好討厭的感覺~~~我要逃走了！' }
+        ];
+        
+        // 檢查當前血量是否低於任何閾值
+        for (const { threshold, state, dialogue } of hpThresholds) {
+            if (monsterHP <= threshold && lastMonsterHPThreshold > threshold) {
+                // 更新上次觸發的閾值
+                lastMonsterHPThreshold = threshold;
+                
+                // 更改怪物狀態
+                changeMonsterState(state);
+                
+                // 顯示對話
+                showMonsterDialogue(dialogue);
+                
+                // 如果血量為0，設置逃跑動畫後隱藏
+                if (threshold === 0) {
+                    setTimeout(() => {
+                        if (monster) monster.visible = false;
+                        
+                        // 顯示擊敗提示
+                        const defeatModal = document.createElement('div');
+                        defeatModal.className = 'completion-modal';
+                        defeatModal.innerHTML = `
+                            <div class="completion-content">
+                                <h2>🎉 恭喜擊敗怪物！</h2>
+                                <p>你獲得了 ${parseInt(exerciseCount.textContent) * 5} 點經驗值！</p>
+                                <button onclick="this.parentElement.parentElement.remove(); monsterHP = 100; lastMonsterHPThreshold = 100; updateHPDisplay(); if(monster) { monster.visible = true; changeMonsterState('idle'); }">繼續訓練</button>
+                            </div>
+                        `;
+                        document.body.appendChild(defeatModal);
+                    }, 3000); // 3秒後隱藏怪物
+                }
+                
+                break;
+            }
+        }
+    }
+
+
+
     
     function changeMonsterState(newState) {
         if (monsterState === newState) return;
@@ -216,23 +338,56 @@ document.addEventListener('DOMContentLoaded', () => {
         if (monster) {
             // 根據狀態添加不同的動作
             if (monsterState === 'idle') {
-                // 保留上下浮動動畫，但移除自旋轉
-                monster.position.y = -1.5 + Math.sin(Date.now() * 0.001) * 0.1;
-                // 不要旋轉: monster.rotation.y += 0.005;
+                // 保留上下浮動動畫，但減小浮動幅度
+                monster.position.y = -5 + Math.sin(Date.now() * 0.001) * 0.05;
+            } else if (monsterState === 'run') {
+                // 逃跑動畫時，讓怪物向後移動
+                monster.position.z -= 0.1;
             }
         }
         
         renderer.render(scene, camera);
     }
+
     
     // 怪物受傷效果
     function monsterHitEffect() {
         if (!monster) return;
         
+        // 根據血量決定反應
+        if (monsterHP > 75) {
+            // 血量高時偶爾挑釁
+            if (Math.random() > 0.7) {
+                showMonsterDialogue('哈！這點攻擊根本不痛不癢！');
+            }
+        } else if (monsterHP > 50) {
+            // 血量中高時顯示輕微受傷
+            if (Math.random() > 0.6) {
+                showMonsterDialogue('嗯...你的攻擊開始有點感覺了...');
+            }
+        } else if (monsterHP > 25) {
+            // 血量中低時顯示明顯受傷
+            if (Math.random() > 0.5) {
+                showMonsterDialogue('啊！好痛！你真的很強！');
+            }
+        } else {
+            // 血量很低時顯示瀕臨失敗
+            if (Math.random() > 0.3) {
+                showMonsterDialogue('不...我快不行了...饒了我吧！');
+            }
+        }
+        
         // 隨機選擇動作：攻擊或挑釁
         const now = Date.now();
         if (now - lastAnimationTime > 3000) { // 至少3秒間隔
-            const action = Math.random() > 0.5 ? 'attack' : 'provocative';
+            // 根據血量選擇不同的反應
+            let action;
+            if (monsterHP > 50) {
+                action = Math.random() > 0.5 ? 'attack' : 'provocative';
+            } else {
+                action = 'idle'; // 血量低時保持虛弱狀態
+            }
+            
             changeMonsterState(action);
             
             // 3秒後恢復閒置狀態
@@ -379,6 +534,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 觸發怪物受傷效果
             monsterHitEffect();
+            
+            // 根據血量更新怪物狀態
+            updateMonsterStateByHP();
 
             // 更新怪物信息
             updateMonsterInfo({
