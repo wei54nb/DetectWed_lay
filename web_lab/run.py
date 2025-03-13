@@ -20,12 +20,15 @@ logging.basicConfig(
 )
 
 # 添加启动信息
-print("正在启动应用...")
+print("正在启动应用...")#還是不行還是不行
 logger = logging.getLogger(__name__)
 logger.info("正在初始化Flask应用")
 
 # 创建Flask应用实例
 app = create_app()
+
+app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+app.static_url_path = '/static'
 
 # 添加心跳函数定义
 def heartbeat():

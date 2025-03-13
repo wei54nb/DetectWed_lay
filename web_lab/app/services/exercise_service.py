@@ -915,14 +915,18 @@ def process_frame_realtime(frame, exercise_type):
         # Exercise-specific processing with original frame for classification
         if exercise_type == "squat":
             process_squat_exercise(frame, annotated_frame, angles, hip_midpoint, detection_line_set, detection_line_y)
+            
 
         elif exercise_type == "shoulder-press":
             process_shoulder_press(frame, annotated_frame, keypoints, angles, detection_line_y_shoulder)
+            
 
         elif exercise_type == "bicep-curl":
             process_bicep_curl(frame, annotated_frame, keypoints, angles)
+            
         else:
             process_other_exercise(frame, annotated_frame, exercise_type)
+            
 
         # Display exercise count
         cv2.putText(annotated_frame, f'Count: {exercise_count}', (10, annotated_frame.shape[0] - 10),
@@ -952,7 +956,6 @@ def process_frame_realtime(frame, exercise_type):
         return np.zeros((480, 480, 3), dtype=np.uint8)  # Return black frame on complete failure
 
 
-  
 def process_shoulder_press(frame, annotated_frame, keypoints, angles, detection_line_y_shoulder):
     """Handle shoulder press exercise processing logic using original frame for classification"""
     global exercise_count, last_pose
@@ -1179,6 +1182,7 @@ def get_current_angles():
             '左肩膀': 0, '右肩膀': 0, '左髖部': 0, '右髖部': 0
         }
     return get_current_angles.current_angles
+
 
 def get_current_quality_score():
     """获取当前品质评分"""
