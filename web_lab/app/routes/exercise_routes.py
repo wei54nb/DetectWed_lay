@@ -13,8 +13,9 @@ import queue
 from app.services.db_service import get_db_connection
 
 
-exercise_service.init_models()
-# 确保这行导入存在
+
+if not hasattr(exercise_service, 'exercise_models') or exercise_service.exercise_models is None:
+    exercise_service.init_models()
 
 exercise_bp = Blueprint('exercise', __name__, url_prefix='/exercise')
 logger = logging.getLogger(__name__)

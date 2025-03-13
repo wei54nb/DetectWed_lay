@@ -5,10 +5,14 @@ import logging
 import os
 from ultralytics import YOLO
 from app import socketio
-from app.services.pose_detection import models
+
+# 修改导入方式，避免命名冲突
+from app.services.pose_detection import pose_model as imported_pose_model
 import threading
 import queue
 import torch 
+from flask import current_app
+
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -37,16 +41,67 @@ target_reps = 10  # 默认目标重复次数
 target_sets = 3   # 默认目标组数
 current_set = 1   # 当前组数
 remaining_sets = 3  # 添加这个变量，它在reset_detection_state中被引用
-pose_model = None  # 添加这个变量，它在process_frame_realtime中被引用
-
-shoulder_state = 'init'  # 肩推初始狀態
 
 # 添加帧缓冲区（如果需要）
 frame_buffer = queue.Queue(maxsize=2)
 processed_frame_buffer = queue.Queue(maxsize=2)
 
-pose_model = YOLO("yolov8n-pose.pt") 
 
+exercise_models = {}
+# 确保pose_model有一个初始值
+pose_model = imported_pose_model
+
+def init_models():
+    """初始化所有模型"""
+    global exercise_models, pose_model
+    
+    try:
+        # 确保 exercise_models 已初始化
+        exercise_models = {}
+        
+        # 加载运动分类模型
+        load_exercise_models()
+        
+        # 优先使用从pose_detection导入的模型
+        if imported_pose_model is not None:
+            pose_model = imported_pose_model
+            logger.info("成功使用pose_detection中的姿态检测模型")
+        
+        # 如果pose_model仍为None，则尝试初始化
+        if pose_model is None:
+            logger.info("姿态检测模型未初始化，尝试重新初始化...")
+            try:
+                # 尝试从配置获取模型路径
+                base_dir = current_app.config['BASE_DIR']
+                pose_path = os.path.join(base_dir, 'static', 'models', 'YOLO_MODLE', 'pose', 'yolov8n-pose.pt')
+                
+                # 如果文件不存在，使用默认路径
+                if not os.path.exists(pose_path):
+                    logger.warning(f"姿态检测模型文件不存在: {pose_path}，使用默认模型")
+                    pose_model = YOLO('yolov8n-pose.pt')
+                else:
+                    pose_model = YOLO(pose_path)
+                logger.info("姿态检测模型加载完成")
+            except Exception as e:
+                logger.error(f"加载姿态检测模型时出错: {e}", exc_info=True)
+                # 确保有一个默认模型
+                try:
+                    pose_model = YOLO('yolov8n-pose.pt')
+                    logger.info("使用默认模型成功")
+                except Exception as e2:
+                    logger.error(f"加载默认模型也失败: {e2}", exc_info=True)
+                    return False
+        
+        # 验证模型是否可用
+        if pose_model is None:
+            logger.error("所有尝试都失败，无法加载姿态检测模型")
+            return False
+            
+        logger.info("所有模型初始化完成")
+        return True
+    except Exception as e:
+        logger.error(f"初始化模型时出错: {e}", exc_info=True)
+        return False
 def convert_to_serializable(data):
     """将数据转换为可序列化的格式"""
     if isinstance(data, dict):
@@ -62,41 +117,36 @@ def convert_to_serializable(data):
     else:
         return data
 
-def init_models():
-    """初始化所有需要的模型"""
-    global pose_model, models
+
+
+def load_exercise_models():
+    """加载运动分类模型"""
+    global exercise_models
+    
     try:
-        # 直接初始化姿態檢測模型
-        pose_model = YOLO("yolov8n-pose.pt")
-        logger.info("姿態檢測模型初始化成功")
+        # 从配置获取模型路径
+        model_paths = current_app.config['MODEL_PATHS']
+        base_dir = current_app.config['BASE_DIR']
         
-        # 初始化運動分類模型
-        MODEL_PATHS = {
-            'squat': 'D:\\project_Main\\modles\\yolov8_squat_model\\weights\\best.pt',
-            'bicep-curl': 'D:\\project_Main\\modles\\best_bicep.pt',
-            'shoulder-press': 'D:\\project_Main\\modles\\yolov8_shoulder_model\\weights\\best.pt',
-            'push-up': 'D:\\project_Main\\modles\\push-up_model\\weights\\pushup_best.pt',
-            'pull-up': 'D:\\project_Main\\modles\\best_pullup.pt',
-            'dumbbell-row':'D:\\project_Main\\modles\\dumbbellrow_train\\weights\\best.pt'
-        }
-        
-        # 加載所有運動模型
-        models = {}
-        for exercise_type, model_path in MODEL_PATHS.items():
+        # 确保模型目录存在
+        for exercise_type, rel_path in model_paths.items():
+            # 构建绝对路径
+            abs_path = os.path.join(base_dir, rel_path)
+            
             try:
-                if torch.cuda.is_available():
-                    exercise_model = YOLO(model_path).to('cuda')
-                else:
-                    exercise_model = YOLO(model_path)
-                models[exercise_type] = exercise_model
-                logger.info(f"YOLO model for {exercise_type} loaded successfully from {model_path}")
+                # 检查文件是否存在
+                if not os.path.exists(abs_path):
+                    logger.warning(f"模型文件不存在: {abs_path}")
+                    continue
+                
+                # 加载模型
+                model = YOLO(abs_path)
+                exercise_models[exercise_type] = model
+                logger.info(f"YOLO model for {exercise_type} loaded successfully from {abs_path}")
             except Exception as e:
-                logger.error(f"Error loading YOLO model for {exercise_type}: {e}")
-        
-        return True
+                logger.error(f"加载{exercise_type}模型时出错: {e}")
     except Exception as e:
-        logger.error(f"初始化模型時出錯: {e}", exc_info=True)
-        return False
+        logger.error(f"初始化运动分类模型时出错: {e}")
 
 def set_detection_line():
     """设置检测线"""
@@ -216,7 +266,8 @@ def process_squat_exercise(frame, annotated_frame, angles, hip_midpoint, detecti
     """Handle squat exercise processing logic using original frame for classification"""
     global exercise_count, last_pose, squat_state, last_squat_time, squat_quality_score
 
-    current_model = models.get("squat")
+    # 使用exercise_models而不是models
+    current_model = exercise_models.get("squat")
     if not current_model:
         logger.warning("Squat model not found!")
         return
@@ -313,7 +364,7 @@ def process_bicep_curl(frame, annotated_frame, keypoints, angles):
         logger.warning("Insufficient keypoints for bicep curl detection!")
         return
 
-    current_model = models.get("bicep-curl")
+    current_model = exercise_models.get("bicep-curl")
     if not current_model:
         logger.warning("Bicep curl model not found!")
         return
@@ -626,7 +677,7 @@ def process_other_exercise(frame, annotated_frame, exercise_type):
     """Handle processing for other exercise types using original frame for classification"""
     global exercise_count, last_pose, mid_pose_detected
 
-    current_model = models.get(exercise_type)
+    current_model = exercise_models.get(exercise_type)
     if not current_model:
         logger.warning(f"Model for {exercise_type} not found!")
         return
@@ -785,9 +836,19 @@ def set_shoulder_detection_line():
 def process_frame_realtime(frame, exercise_type):
     global exercise_count, last_pose, mid_pose_detected, squat_state, last_squat_time
     global detection_line_set, detection_line_y, knee_line_coords, squat_quality_score
-    global detection_line_set_shoulder, detection_line_y_shoulder
+    global detection_line_set_shoulder, detection_line_y_shoulder, pose_model
 
     try:
+        if pose_model is None:
+            logger.warning("姿态检测模型未初始化，尝试重新初始化...")
+            try:
+                pose_model = YOLO('yolov8n-pose.pt')
+                logger.info("姿态检测模型重新初始化成功")
+            except Exception as e:
+                logger.error(f"重新初始化姿态检测模型失败: {e}")
+                # 创建一个带有错误信息的帧
+                return create_error_frame(frame, "姿态检测模型加载失败")
+
         frame = cv2.resize(frame, (480, 480))
         annotated_frame = frame.copy()
 
@@ -969,7 +1030,7 @@ def process_shoulder_press(frame, annotated_frame, keypoints, angles, detection_
         logger.warning("Insufficient keypoints for shoulder press detection!")
         return
 
-    current_model = models.get("shoulder-press")
+    current_model = exercise_models.get("shoulder-press")
     if not current_model:
         logger.warning("Shoulder press model not found!")
         return

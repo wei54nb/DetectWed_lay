@@ -5,12 +5,13 @@ import torch
 from ultralytics import YOLO
 from flask import current_app
 from app import socketio
+import os
 
 logger = logging.getLogger(__name__)
 
 # 全局变量
-models = {}
-pose_model = None
+models = {}  # 這個字典只用於存其他辅助模型
+pose_model = None  # 專門用於姿態檢測的模型
 
 # 修改 setup_models 函数，不依赖 current_app
 def setup_models():
@@ -115,61 +116,28 @@ def get_pose_angles(keypoints):
     return angles
 
 def load_models():
-    """加载所有需要的模型"""
-    global models, pose_model
+    """加载姿态检测模型"""
+    global pose_model
     
     try:
-        # 加载姿态检测模型
+        # 从配置獲取模型路徑
+        base_dir = current_app.config['BASE_DIR']
+        
+        # 加载姿態檢測模型模型
         logger.info("正在加载姿态检测模型...")
-        pose_model = YOLO('yolov8n-pose.pt')
+        pose_path = os.path.join(base_dir, 'static', 'models', 'YOLO_MODLE', 'pose', 'yolov8n-pose.pt')
+        
+        # 如果文件不存在，使用默認路徑
+        if not os.path.exists(pose_path):
+            logger.warning(f"姿态检测模型文件不存在: {pose_path}，使用默认模型")
+            pose_model = YOLO('yolov8n-pose.pt')
+        else:
+            pose_model = YOLO(pose_path)
+        
         logger.info("姿态检测模型加载完成")
         
-        # 加载深蹲分类模型
-        logger.info("正在加载深蹲分类模型...")
-        models['squat'] = YOLO('yolov8n-pose.pt')  # 暂时使用相同模型，实际应该使用专门训练的分类模型
-        logger.info("深蹲分类模型加载完成")
+       
         
     except Exception as e:
         logger.error(f"加载模型时出错: {e}", exc_info=True)
         raise
-
-def calculate_angle(a, b, c):
-    """
-    计算三个点形成的角度
-    
-    参数:
-        a: 第一个点的坐标 [x, y]
-        b: 中间点的坐标 [x, y]
-        c: 第三个点的坐标 [x, y]
-        
-    返回:
-        角度值 (度)
-    """
-    try:
-        # 检查输入是否有效
-        if np.isnan(a).any() or np.isnan(b).any() or np.isnan(c).any():
-            return float('nan')
-        
-        # 计算向量
-        ba = a - b
-        bc = c - b
-        
-        # 计算点积
-        cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-        
-        # 确保cosine_angle在有效范围内
-        cosine_angle = np.clip(cosine_angle, -1.0, 1.0)
-        
-        # 计算角度
-        angle = np.arccos(cosine_angle)
-        
-        # 转换为度
-        angle = np.degrees(angle)
-        
-        return angle
-    except Exception as e:
-        logger.error(f"计算角度时出错: {e}", exc_info=True)
-        return float('nan')
-
-# 初始化模型
-load_models()    

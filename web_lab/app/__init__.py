@@ -15,7 +15,8 @@ socketio = SocketIO(
 )
 
 login_manager = LoginManager()
-login_manager.login_view = 'auth.login'
+# 設置登入視圖，需要在初始化後設置
+setattr(login_manager, 'login_view', 'auth.login')  # 使用setattr動態設置屬性
 bcrypt = Bcrypt()
 
 # 添加user_loader回调函数
@@ -25,11 +26,19 @@ def load_user(user_id):
     from app.models.user import load_user as model_load_user
     return model_load_user(user_id)
 
-def create_app(config_object='app.config.Config'):
+def create_app(config_name='development'):
     """应用工厂函数"""
     app = Flask(__name__)
-    app.config.from_object(config_object)
-
+    
+    # 根据环境选择配置
+    if config_name == 'production':
+        app.config.from_object('app.config.ProductionConfig')
+    else:
+        app.config.from_object('app.config.DevelopmentConfig')
+    
+    # 初始化应用
+    from app.config import Config
+    Config.init_app(app)
 
     # 配置日志
     logging.basicConfig(
@@ -54,17 +63,48 @@ def create_app(config_object='app.config.Config'):
     app.register_blueprint(exercise_bp)
     
     # 初始化模型
-    with app.app_context():  # 添加应用上下文
+# 在應用上下文中執行模型加載
+
+    with app.app_context():
+        # 先加载姿态检测模型
+        from app.services.pose_detection import load_models
+        try:
+            load_models()
+            app.logger.info("姿态检测模型加载成功")
+        except Exception as e:
+            app.logger.error(f"加载姿态检测模型失败: {e}")
+        
+        # 再加载运动分类模型 - 确保在应用上下文中
         from app.services import exercise_service
-        exercise_service.init_models()
-    
-    # 设置错误处理
-    @app.errorhandler(404)
-    def page_not_found(e):
-        return render_template('404.html'), 404
-    
-    @app.errorhandler(500)
-    def internal_server_error(e):
-        return render_template('500.html'), 500
-    
-    return app
+        try:
+            if hasattr(exercise_service, 'init_models'):
+                exercise_service.init_models()
+                app.logger.info("运动检测模型加载成功")
+            else:
+                exercise_service.load_exercise_models()
+                app.logger.info("运动检测模型加载成功")
+        except Exception as e:
+            app.logger.error(f"加载运动检测模型失败: {e}")
+        
+        # 再加载運動分類模型
+        from app.services import exercise_service
+        try:
+            if hasattr(exercise_service, 'init_models'):
+                exercise_service.init_models()
+                app.logger.info("运动检测模型加载成功")
+            else:
+                exercise_service.load_exercise_models()
+                app.logger.info("运动检测模型加载成功")
+        except Exception as e:
+            app.logger.error(f"加载运动检测模型失败: {e}")
+        
+        # 設置錯誤處理
+        @app.errorhandler(404)
+        def page_not_found(e):
+            return render_template('404.html'), 404
+        
+        @app.errorhandler(500)
+        def internal_server_error(e):
+            return render_template('500.html'), 500
+        
+        return app
