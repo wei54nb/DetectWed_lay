@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>運動冒險-遊戲地圖</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/game_map.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <div class="user-info">
+                <div class="user-avatar">
+                    <img src="{{ url_for('static', filename='img/avatar.png') }}" alt="用戶頭像">
+                </div>
+                <div class="user-stats">
+                    <div class="username">{{ username }}</div>
+                    <div class="level-info">等級: <span id="user-level">1</span></div>
+                </div>
+            </div>
+            <div class="exp-bar-container">
+                <div class="exp-label">經驗值: <span id="current-exp">0</span>/<span id="next-level-exp">100</span></div>
+                <div class="exp-bar">
+                    <div class="exp-bar-fill" id="exp-bar-fill"></div>
+                </div>
+            </div>
+            <div class="game-actions">
+                <button id="achievements-btn" class="game-btn">成就</button>
+                <button id="back-btn" class="game-btn" onclick="window.location.href='/'">返回主頁</button>
+            </div>
+        </header>
+        
+        <div class="map-container">
+            <div class="map-background">
+                <!-- 地圖背景圖 -->
+                <img src="{{ url_for('static', filename='img/game/map_background.png') }}" alt="地圖背景">
+                
+                <!-- 關卡節點由 js 生成  -->
+                <div id="level-nodes"></div>
+            </div>
+        </div>
+        
+        <!-- 关卡详情弹窗 -->
+        <div class="level-modal" id="level-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="level-title">關卡標題</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="level-image">
+                        <img id="level-image" src="" alt="關卡圖片">
+                    </div>
+                    <div class="level-description" id="level-description">
+                        關卡描述內容...
+                    </div>
+                    <div class="level-monsters">
+                        <h3>怪物信息</h3>
+                        <div class="monster-info">
+                            <div class="monster-count">數量: <span id="monster-count">3</span></div>
+                            <div class="monster-hp">血量: <span id="monster-hp">100</span></div>
+                        </div>
+                    </div>
+                    <div class="level-rewards">
+                        <h3>通關獎勵</h3>
+                        <div id="level-rewards">經驗值 +50</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="start-level-btn" class="game-btn primary-btn">开始挑戰</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 成就弹窗 -->
+        <div class="achievements-modal" id="achievements-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>我的成就</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div id="achievements-list" class="achievements-list">
+                        <!-- 成就列表将由JavaScript动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 新成就通知 -->
+        <div class="achievement-notification" id="achievement-notification">
+            <div class="achievement-icon">🏆</div>
+            <div class="achievement-content">
+                <div class="achievement-title" id="notification-title">新成就解锁!</div>
+                <div class="achievement-description" id="notification-description">成就描述</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/game_map.js') }}"></script>
+</body>
+</html>    

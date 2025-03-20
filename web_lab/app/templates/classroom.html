@@ -6,6 +6,42 @@
     <title>課程討論區</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <style>
+        /* 添加统一的布局样式 */
+        .standard-layout .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .standard-layout #discussionsList {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .standard-layout .bg-white {
+            width: 100%;
+            display: block;
+        }
+        
+        /* 确保讨论项目是垂直排列的 */
+        .standard-layout #discussionsList > div {
+            width: 100%;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        /* 修复可能导致横向排列的样式 */
+        @media (max-width: 768px) {
+            .standard-layout #discussionsList {
+                flex-direction: column !important;
+            }
+            
+            .standard-layout #discussionsList > div {
+                width: 100% !important;
+            }
+        }
+        
+        /* 原有样式保持不变 */
         .modal {
             transition: opacity 0.3s ease-in-out;
             opacity: 0;
@@ -268,79 +304,186 @@
                 });
     }
 
+    // 修改页面初始化部分，确保布局一致性
     document.addEventListener('DOMContentLoaded', function() {
-        // 檢查用戶登入狀態和角色
+        // 检查用户登录状态和角色
+        console.log('页面加载完成，开始初始化');
+        
+        // 设置默认课程ID
+        currentCourseId = 3; // 默认课程ID
+        console.log('当前课程ID:', currentCourseId);
+        
+        // 检查用户登录状态
         fetch('/api/user/status', {
             credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(data => {
-            isTeacher = data.role === 'teacher';
+            console.log('用户状态:', data);
+            if (data.authenticated) {
+                isTeacher = data.role === 'teacher';
+                currentUserId = data.userId;
+                // 保存到sessionStorage以便在刷新页面后仍能使用
+                sessionStorage.setItem("role", data.role);
+                sessionStorage.setItem("userId", data.userId);
+                if (data.username) {
+                    sessionStorage.setItem("username", data.username);
+                }
+                console.log(`用户已登录，角色:${data.role}, ID:${data.userId}`);
+                
+                // 添加统一的布局类
+                document.body.classList.add('standard-layout');
+                // 无论角色如何，都使用相同的容器样式
+                const container = document.querySelector('.container');
+                if (container) {
+                    container.className = 'container mx-auto px-4 py-8';
+                }
+            } else {
+                console.log('用户未登录');
+                // 从sessionStorage获取用户信息
+                const role = sessionStorage.getItem("role");
+                if (role === "teacher") {
+                    isTeacher = true;
+                } else {
+                    isTeacher = false;
+                }
+                currentUserId = sessionStorage.getItem("userId") || sessionStorage.getItem("username") || 'guest';
+                console.log(`从会话获取用户信息，角色:${role}, ID:${currentUserId}`);
+                
+                // 添加统一的布局类
+                document.body.classList.add('standard-layout');
+            }
+            
+            // 加载讨论列表
             loadDiscussions();
         })
         .catch(error => {
-            console.error('Error checking user status:', error);
+            console.error('检查用户状态时出错:', error);
+            // 出错时仍然尝试加载讨论
             loadDiscussions();
         });
-
-        // 綁定新增討論表單
+        
+        // 绑定新增讨论表单
         const newDiscussionForm = document.getElementById('newDiscussionForm');
         if (newDiscussionForm) {
             newDiscussionForm.addEventListener('submit', handleNewDiscussion);
+            console.log('已绑定新增讨论表单');
+        } else {
+            console.error('未找到新增讨论表单');
         }
     });
 
     // 載入討論列表
     function loadDiscussions() {
-        fetch(`/api/discussions?course_id=${currentCourseId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        renderDiscussions(data.discussions);
-                    } else {
-                        console.error('Error loading discussions:', data.error);
-                        alert('載入討論失敗，請稍後再試');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading discussions:', error);
-                    alert('載入討論時發生錯誤，請稍後再試');
-                });
+    console.log(`正在加载课程ID为${currentCourseId}的讨论...`);
+    fetch(`/api/discussions?course_id=${currentCourseId}`)
+        .then(response => {
+            console.log('讨论API响应状态:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('讨论API返回数据:', data);
+            if (data.success) {
+                if (data.discussions && Array.isArray(data.discussions)) {
+                    console.log(`成功获取${data.discussions.length}条讨论`);
+                    renderDiscussions(data.discussions);
+                } else {
+                    console.error('API返回的discussions不是数组:', data.discussions);
+                    document.getElementById('discussionsList').innerHTML = '<p class="text-center text-gray-500 my-8">没有找到讨论数据</p>';
+                }
+            } else {
+                console.error('加载讨论失败:', data.error);
+                alert('载入討論失敗: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('加载讨论时发生错误:', error);
+            alert('載入討論時發生錯誤，請稍後再試');
+        });
     }
 
+    
     // 渲染討論列表
     function renderDiscussions(discussions) {
         const discussionsList = document.getElementById('discussionsList');
         discussionsList.innerHTML = '';
 
-        if (discussions.length === 0) {
-            discussionsList.innerHTML = '<p class="text-center text-gray-500 py-4 italic">目前還沒有討論，成為第一個發起討論的人吧！</p>';
+        console.log(`开始渲染${discussions.length}条讨论`);
+
+        if (!discussions || discussions.length === 0) {
+            discussionsList.innerHTML = '<p class="text-center text-gray-500 my-8">目前還沒有討論，點擊上方按鈕發起新討論</p>';
             return;
         }
 
         discussions.forEach(discussion => {
-            const discussionElement = createDiscussionElement(discussion);
-            discussionsList.appendChild(discussionElement);
+            console.log('渲染讨论:', discussion);
+            try {
+                const discussionElement = createDiscussionElement(discussion);
+                discussionsList.appendChild(discussionElement);
+                
+                // 自动加载该讨论的回复
+                loadResponses(discussion.discussion_id);
+            } catch (error) {
+                console.error('渲染讨论元素时出错:', error, discussion);
+            }
         });
     }
 
-    // 創建討論元素，若為老師則顯示刪除按鈕
+
+    // 修改createDiscussionElement函数，确保一致的布局
     function createDiscussionElement(discussion) {
+        if (!discussion) {
+            console.error('讨论对象为空');
+            return document.createElement('div');
+        }
+
         const div = document.createElement('div');
-        div.className = 'bg-white rounded-lg shadow p-4 mb-4 transition-all hover:shadow-md';
+        div.className = 'bg-white rounded-lg shadow p-4 mb-4 transition-all hover:shadow-md w-full';
 
         // 格式化日期
-        const createdAt = new Date(discussion.created_at);
-        const formattedDate = `${createdAt.getFullYear()}/${(createdAt.getMonth()+1).toString().padStart(2, '0')}/${createdAt.getDate().toString().padStart(2, '0')} ${createdAt.getHours().toString().padStart(2, '0')}:${createdAt.getMinutes().toString().padStart(2, '0')}`;
+        let formattedDate = '未知时间';
+        try {
+            if (discussion.created_at) {
+                const createdAt = new Date(discussion.created_at);
+                formattedDate = `${createdAt.getFullYear()}/${(createdAt.getMonth()+1).toString().padStart(2, '0')}/${createdAt.getDate().toString().padStart(2, '0')} ${createdAt.getHours().toString().padStart(2, '0')}:${createdAt.getMinutes().toString().padStart(2, '0')}`;
+            }
+        } catch (error) {
+            console.error('格式化日期时出错:', error, discussion.created_at);
+        }
+
+        // 确定作者名称和角色
+        let authorName = '未知用户';
+        let isTeacherPost = false;
+
+        if (discussion.teacher_id) {
+            isTeacherPost = true;
+            if (discussion.teacher_name) {
+                authorName = discussion.teacher_name;
+            } else if (discussion.author_name) {
+                authorName = discussion.author_name;
+            } else {
+                authorName = `教师ID:${discussion.teacher_id}`;
+            }
+        } else if (discussion.student_id) {
+            if (discussion.student_name) {
+                authorName = discussion.student_name;
+            } else if (discussion.author_name) {
+                authorName = discussion.author_name;
+            } else {
+                authorName = `学生ID:${discussion.student_id}`;
+            }
+        } else if (discussion.author_name) {
+            authorName = discussion.author_name;
+        }
 
         div.innerHTML = `
             <div class="flex justify-between items-start">
                 <div>
-                    <h3 class="text-lg font-semibold">${discussion.title}</h3>
+                    <h3 class="text-lg font-semibold">${discussion.title || '无标题'}</h3>
                     <p class="text-gray-600 text-sm">
-                        由 <span class="font-medium">${discussion.teacher_username || discussion.student_username}</span>
-                        <span class="text-xs ${discussion.teacher_id ? 'text-yellow-600' : 'text-blue-600'} font-medium">
-                            ${discussion.teacher_id ? '(教師)' : '(學生)'}
+                        由 <span class="font-medium">${authorName}</span>
+                        <span class="text-xs ${isTeacherPost ? 'text-yellow-600' : 'text-blue-600'} font-medium">
+                            ${isTeacherPost ? '(教師)' : '(學生)'}
                         </span>
                         發布於 ${formattedDate}
                     </p>
@@ -353,33 +496,72 @@
                         ${discussion.response_count || 0}
                     </span>
                     ${isTeacher ? `
-                <button onclick="deleteDiscussion(${discussion.discussion_id})"
-                class="text-red-500 hover:text-red-700 transition-colors"
-                title="刪除討論">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-                </button>
-                ` : ''}
+                    <button onclick="deleteDiscussion(${discussion.discussion_id})"
+                    class="text-red-500 hover:text-red-700 transition-colors"
+                    title="刪除討論">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    </button>` : ''}
                 </div>
             </div>
-            <p class="mt-3 text-gray-700">${discussion.content}</p>
+            <p class="mt-3 text-gray-700">${discussion.content || '无内容'}</p>
             <div class="mt-4 space-y-2 responses-${discussion.discussion_id}"></div>
             <div class="mt-4 flex items-center justify-between border-t pt-3">
                 <button onclick="showResponseInput(${discussion.discussion_id})"
-                        class="text-blue-500 hover:text-blue-700 transition-colors flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clip-rule="evenodd" />
+                    class="text-blue-500 hover:text-blue-700 flex items-center transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
                     </svg>
                     回覆
                 </button>
-                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    ${discussion.course_name || '未知課程'}
-                </span>
+                <button onclick="loadResponses(${discussion.discussion_id})"
+                    class="text-gray-500 hover:text-gray-700 flex items-center transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                    </svg>
+                    刷新回覆
+                </button>
             </div>
         `;
+        return div;
+    }
 
-        loadResponses(discussion.discussion_id);
+
+    // 创建回复元素，若为老师则显示删除按钮
+
+    function createResponseElement(response) {
+        const div = document.createElement('div');
+        div.className = `p-3 ${response.is_teacher ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-gray-50 border-l-4 border-blue-300'} rounded mb-2 transition-all hover:shadow-sm`;
+        
+        // 格式化日期
+        const createdAt = new Date(response.created_at);
+        const formattedDate = `${createdAt.getFullYear()}/${(createdAt.getMonth()+1).toString().padStart(2, '0')}/${createdAt.getDate().toString().padStart(2, '0')} ${createdAt.getHours().toString().padStart(2, '0')}:${createdAt.getMinutes().toString().padStart(2, '0')}`;
+        
+        // 使用username或user_id作为用户名
+        const username = response.username || response.user_id || '未知用户';
+        
+        div.innerHTML = `
+        <div class="flex justify-between items-start">
+            <p class="text-sm">
+            <span class="font-semibold">${username}</span>
+            <span class="text-xs ${response.is_teacher ? 'text-yellow-600' : 'text-blue-600'} ml-2 font-medium">
+                ${response.is_teacher ? '(教師)' : '(學生)'}
+            </span>
+            </p>
+            <span class="text-xs text-gray-500">${formattedDate}</span>
+        </div>
+        <p class="mt-2 text-gray-700">${response.content}</p>
+        ${isTeacher ? `
+                <div class="mt-2 text-right">
+                <button onclick="deleteResponse(${response.response_id}, ${response.discussion_id})"
+                class="text-red-500 hover:text-red-700 text-sm flex items-center ml-auto transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>刪除
+                </button>
+                </div>` : ''}
+        `;
         return div;
     }
 
@@ -455,23 +637,69 @@
                 });
     }
 
+    let responseLoadTimers = {};
     // 載入回覆
     function loadResponses(discussionId) {
-        fetch(`/api/responses?discussion_id=${discussionId}`)
-                .then(response => response.json())
+        console.log(`正在加载讨论ID为${discussionId}的回复...`);
+        
+        // 如果已经有一个计时器在运行，先清除它
+        if (responseLoadTimers[discussionId]) {
+            clearTimeout(responseLoadTimers[discussionId]);
+        }
+        
+        // 设置一个新的计时器，延迟100毫秒执行，避免短时间内多次请求
+        responseLoadTimers[discussionId] = setTimeout(() => {
+            // 显示加载指示器
+            const responsesContainer = document.querySelector(`.responses-${discussionId}`);
+            if (responsesContainer) {
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.className = 'text-center py-2 loading-indicator';
+                loadingIndicator.innerHTML = '<span class="text-gray-500">加载回复中...</span>';
+                
+                // 移除之前的加载指示器
+                const existingIndicator = responsesContainer.querySelector('.loading-indicator');
+                if (existingIndicator) {
+                    existingIndicator.remove();
+                }
+                
+                responsesContainer.appendChild(loadingIndicator);
+            }
+            
+            fetch(`/api/responses?discussion_id=${discussionId}`)
+                .then(response => {
+                    console.log(`回复API响应状态:`, response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log(`回复API返回数据:`, data);
                     if (data.success) {
-                        renderResponses(discussionId, data.responses);
+                        if (data.responses && Array.isArray(data.responses)) {
+                            console.log(`成功获取${data.responses.length}条回复`);
+                            // 检查第一条回复的数据结构
+                            if (data.responses.length > 0) {
+                                console.log('第一条回复数据:', data.responses[0]);
+                            }
+                            renderResponses(discussionId, data.responses);
+                        } else {
+                            console.error('API返回的responses不是数组:', data.responses);
+                            renderResponses(discussionId, []);
+                        }
                     } else {
-                        console.error('Error loading responses:', data.error);
+                        console.error('加载回复失败:', data.error);
+                        renderResponses(discussionId, []);
                     }
                 })
-                .catch(error => console.error('Error loading responses:', error));
+                .catch(error => {
+                    console.error('加载回复时发生错误:', error);
+                    renderResponses(discussionId, []);
+                });
+        }, 100);
     }
 
     // 渲染回覆列表
     function renderResponses(discussionId, responses) {
         const responsesContainer = document.querySelector(`.responses-${discussionId}`);
+        if (!responsesContainer) return;
 
         // 移除所有非輸入框元素
         Array.from(responsesContainer.children).forEach(child => {
@@ -510,6 +738,20 @@
         } else {
             responsesContainer.appendChild(responsesFragment);
         }
+        
+        // 更新讨论项中的回复计数
+        const discussionElement = responsesContainer.closest('.bg-white');
+        if (discussionElement) {
+            const countElement = discussionElement.querySelector('.text-sm.text-gray-500.mr-3');
+            if (countElement) {
+                countElement.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clip-rule="evenodd" />
+                    </svg>
+                    ${responses.length}
+                `;
+            }
+        }
     }
 
     // 創建回覆元素，若為老師則顯示刪除按鈕
@@ -547,28 +789,61 @@
 
     // 頁面載入時執行
     document.addEventListener('DOMContentLoaded', function () {
-        // 檢查用戶登入狀態
-        const role = sessionStorage.getItem("role");
-        if (role === "teacher") {
-            isTeacher = true;
-        }
-
-        // 從localStorage獲取用戶ID和名稱
-        currentUserId = sessionStorage.getItem("userId") || sessionStorage.getItem("username") || 'guest';
-
-        // 載入討論列表
-        loadDiscussions();
-
-        // 綁定新增討論按鈕
-        const newDiscussionBtn = document.getElementById('newDiscussionBtn');
-        if (newDiscussionBtn) {
-            newDiscussionBtn.addEventListener('click', showNewDiscussionModal);
-        }
-
-        // 綁定發起新討論表單
+        console.log('页面加载完成，开始初始化');
+        
+        // 设置默认课程ID
+        currentCourseId = 3; // 默认课程ID
+        console.log('当前课程ID:', currentCourseId);
+        
+        // 无论用户角色，都应用标准布局类
+        document.body.classList.add('standard-layout');
+        
+        // 检查用户登录状态
+        fetch('/api/user/status', {
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('用户状态:', data);
+            if (data.authenticated) {
+                isTeacher = data.role === 'teacher';
+                currentUserId = data.userId;
+                // 保存到sessionStorage以便在刷新页面后仍能使用
+                sessionStorage.setItem("role", data.role);
+                sessionStorage.setItem("userId", data.userId);
+                if (data.username) {
+                    sessionStorage.setItem("username", data.username);
+                }
+                console.log(`用户已登录，角色:${data.role}, ID:${data.userId}`);
+            } else {
+                console.log('用户未登录');
+                // 从sessionStorage获取用户信息
+                const role = sessionStorage.getItem("role");
+                if (role === "teacher") {
+                    isTeacher = true;
+                } else {
+                    isTeacher = false;
+                }
+                currentUserId = sessionStorage.getItem("userId") || sessionStorage.getItem("username") || 'guest';
+                console.log(`从会话获取用户信息，角色:${role}, ID:${currentUserId}`);
+            }
+            
+            // 加载讨论列表
+            loadDiscussions();
+        })
+        .catch(error => {
+            console.error('检查用户状态时出错:', error);
+            // 出错时仍然尝试加载讨论
+            loadDiscussions();
+        });
+        
+        // 绑定新增讨论表单
         const newDiscussionForm = document.getElementById('newDiscussionForm');
         if (newDiscussionForm) {
             newDiscussionForm.addEventListener('submit', handleNewDiscussion);
+            console.log('已绑定新增讨论表单');
+        } else {
+            console.error('未找到新增讨论表单');
         }
     });
 </script>

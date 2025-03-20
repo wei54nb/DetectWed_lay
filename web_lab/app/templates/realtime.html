@@ -20,10 +20,29 @@
         <img src="{{ url_for('static', filename='img/nkust.png') }}" alt="NKUST Logo">
         <span>國立高雄科技大學</span>
     </div>
+    <div class="user-info">
+        <div class="user-avatar">
+            <img src="{{ url_for('static', filename='img/avatar.png') }}" alt="用戶頭像">
+        </div>
+        <div class="user-stats">
+            <div class="username">{{ username|default('測試用戶') }}</div>
+            <div class="level-info">等級: <span id="user-level">1</span> | 關卡: <span id="current-level-display">1</span></div>
+        </div>
+        <div class="exp-progress-container">
+            <div class="exp-label">經驗值: <span id="current-exp">0</span>/<span id="next-level-exp">100</span></div>
+            <div class="exp-bar">
+                <div class="exp-bar-fill" id="exp-bar-fill"></div>
+            </div>
+            <!-- 簡易地圖顯示 -->
+            <div class="simple-map">
+                <div id="map-levels" class="map-levels"></div>
+                <button id="show-map-btn" class="small-button">查看地圖</button>
+            </div>
+        </div>
+    </div>
     <div class="nav-buttons">
         <a href="{{ url_for('main.index') }}" class="button">回首頁</a>
-        <button class="button">動作知識</button>
-        <button class="button">器材介紹</button>
+        <button id="achievements-btn" class="button">成就</button>
     </div>
 </div>
 
@@ -55,10 +74,11 @@
         </div>
     </div>
 
-    <div class="video-container">
-        <img id="video-feed" src="{{ url_for('exercise.video_feed') }}" alt="Real-time Video Feed">
+    <div class="main-content-area">
+        <div class="video-container">
+            <img id="video-feed" src="{{ url_for('exercise.video_feed') }}" alt="Real-time Video Feed">
+        </div>
     </div>
-
 
     <div class="data-container">
         <h2>即時數據</h2>
@@ -75,7 +95,7 @@
         <div class="control-panel">
             <select id="exercise-type" class="exercise-selector">
                 <option value="squat">深蹲訓練</option>
-                <option value="bicep-curl">二頭訓練</option>
+                <option value="bicep-curl">二頭訓練</option><div class="monster-area">
                 <option value="shoulder-press">肩推訓練</option>
                 <option value="push-up">伏地挺身</option>
                 <option value="pull-up">引體向上</option>
@@ -112,8 +132,12 @@
                 <div class="hp-bar">
                     <div class="hp-label">怪物血量</div>
                     <div class="hp-value" id="monster-hp">100</div>
+                    <div class="monster-count">怪物: 1/1</div>
                 </div>
-                <!-- 怪物場景容器 - 添加明確的容器結構 -->
+                <div class="hp-bar-container">
+                    <div class="hp-bar-fill"></div>
+                </div>
+                <!-- 怪物場景容器 -->
                 <div class="monster-container">
                     <div id="monster-scene-container" class="monster-scene-container"></div>
                 </div>
@@ -122,6 +146,78 @@
     </div>
 </div>
 
+<!-- 关卡详情弹窗 -->
+<div class="level-modal" id="level-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="level-title">关卡标题</h2>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="level-image">
+                <img id="level-image" src="" alt="关卡图片">
+            </div>
+            <div class="level-description" id="level-description">
+                关卡描述内容...
+            </div>
+            <div class="level-monsters">
+                <h3>怪物信息</h3>
+                <div class="monster-info">
+                    <div class="monster-count">数量: <span id="monster-count">3</span></div>
+                    <div class="monster-hp">血量: <span id="monster-hp">100</span></div>
+                </div>
+            </div>
+            <div class="level-rewards">
+                <h3>通关奖励</h3>
+                <div id="level-rewards">经验值 +50</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <!-- 修改按钮，不再跳转页面，而是直接加载关卡 -->
+            <button id="start-level-btn" class="game-btn primary-btn">开始挑战</button>
+        </div>
+    </div>
+</div>
 
+<!-- 地圖弹窗 -->
+<div class="map-modal" id="map-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>遊戲地圖</h2>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="full-map-container">
+                <div id="full-map-levels" class="full-map-levels"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 成就弹窗 -->
+<div class="achievements-modal" id="achievements-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>我的成就</h2>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="achievements-list" class="achievements-list">
+                <!-- 成就列表将由JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新成就通知 -->
+<div class="achievement-notification" id="achievement-notification">
+    <div class="achievement-icon">🏆</div>
+    <div class="achievement-content">
+        <div class="achievement-title" id="notification-title">新成就解锁!</div>
+        <div class="achievement-description" id="notification-description">成就描述</div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/game_map_simple.js') }}"></script>
 </body>
 </html>

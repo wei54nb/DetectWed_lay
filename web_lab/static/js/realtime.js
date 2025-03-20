@@ -1,7 +1,13 @@
+let currentLevel = null;
+let currentMonsterIndex = 0;
+let totalMonsters = 1;
+let monsterHP = 100;
+let initialMonsterHP = 100;
 
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     // 使用正确的命名空间连接
+
+
     const startButton = document.getElementById('start-detection');
     const stopButton = document.getElementById('stop-detection');
     const exerciseSelect = document.getElementById('exercise-type');
@@ -298,7 +304,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-
+    function updateMonsterUI() {
+        // 更新怪物血量顯示
+        const monsterHPElement = document.getElementById('monster-hp');
+        if (monsterHPElement) {
+            monsterHPElement.textContent = monsterHP;
+        }
+        
+        // 更新怪物計數顯示
+        const monsterCountElement = document.querySelector('.monster-count');
+        if (monsterCountElement) {
+            monsterCountElement.textContent = `怪物: ${currentMonsterIndex + 1}/${totalMonsters}`;
+        }
+        
+        // 更新血量條
+        const hpBarFill = document.querySelector('.hp-bar-fill');
+        if (hpBarFill) {
+            const hpPercentage = (monsterHP / initialMonsterHP) * 100;
+            hpBarFill.style.width = `${hpPercentage}%`;
+        }
+    }
 
     
     function changeMonsterState(newState) {
@@ -347,6 +372,119 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         renderer.render(scene, camera);
+    }
+
+    function monsterDefeated() {
+        // 播放怪物被擊敗的動畫或效果
+        playMonsterDefeatAnimation();
+        
+        // 增加怪物計數
+        currentMonsterIndex++;
+        
+        // 檢查是否所有怪物都被擊敗
+        if (currentMonsterIndex >= totalMonsters) {
+            // 所有怪物都被擊敗，關卡完成
+            levelCompleted();
+        } else {
+            // 還有更多怪物，重置血量並繼續
+            monsterHP = initialMonsterHP;
+            
+            // 更新UI
+            updateMonsterUI();
+            
+            // 顯示新怪物
+            spawnNewMonster();
+        }
+    }
+
+        // 添加關卡完成的處理函數
+        function levelCompleted() {
+            // 停止偵測
+            socket.emit('stop_detection', {});
+            
+            // 發送關卡完成請求
+            fetch('/api/game/complete_level', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    level_id: currentLevel.level_id,
+                    user_id: document.getElementById('student-id').value || 'C111151146'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 顯示關卡完成消息
+                    alert(`恭喜！你已完成關卡 ${currentLevel.level_name}！獲得 ${currentLevel.exp_reward} 經驗值！`);
+                    
+                    // 更新用戶經驗值和等級顯示
+                    if (data.user_data) {
+                        document.getElementById('current-exp').textContent = data.user_data.total_exp;
+                        document.getElementById('user-level').textContent = data.user_data.level;
+                        document.getElementById('current-level-display').textContent = data.user_data.current_level;
+                        document.getElementById('next-level-exp').textContent = data.user_data.next_level_exp;
+                        
+                        // 更新經驗條
+                        const expBarFill = document.getElementById('exp-bar-fill');
+                        if (expBarFill) {
+                            const expPercentage = (data.user_data.total_exp % data.user_data.next_level_exp) / data.user_data.next_level_exp * 100;
+                            expBarFill.style.width = `${expPercentage}%`;
+                        }
+                        
+                        // 重新載入地圖以顯示新解鎖的關卡
+                        if (typeof renderSimpleMapNodes === 'function') {
+                            renderSimpleMapNodes();
+                        }
+                    }
+                    
+                    // 重置關卡狀態
+                    currentLevel = null;
+                    currentMonsterIndex = 0;
+                    
+                    // 如果有解鎖成就，顯示成就通知
+                    if (data.achievements && data.achievements.length > 0) {
+                        // 依次顯示成就，每個成就顯示時間延長到5秒
+                        data.achievements.forEach((achievement, index) => {
+                            setTimeout(() => {
+                                showAchievementNotification(achievement.achievement_name, achievement.achievement_description);
+                            }, index * 5500); // 每個成就間隔5.5秒
+                        });
+                    }
+                } else {
+                    console.error('關卡完成請求失敗:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('關卡完成請求發送失敗:', error);
+            });
+        }
+
+    function playMonsterDefeatAnimation() {
+        // 這裡可以添加怪物被擊敗的動畫效果
+        const monsterContainer = document.querySelector('.monster-container');
+        if (monsterContainer) {
+            monsterContainer.classList.add('monster-defeated');
+            
+            // 動畫結束後移除類
+            setTimeout(() => {
+                monsterContainer.classList.remove('monster-defeated');
+            }, 1000);
+        }
+    }
+
+    function spawnNewMonster() {
+        // 這裡可以添加生成新怪物的動畫或效果
+        const monsterContainer = document.querySelector('.monster-container');
+        if (monsterContainer) {
+            monsterContainer.classList.add('monster-spawn');
+            
+            // 動畫結束後移除類
+            setTimeout(() => {
+                monsterContainer.classList.remove('monster-spawn');
+            }, 1000);
+        }
     }
 
     
@@ -519,6 +657,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 showCompletionMessage();
                 stopButton.click();
             }
+        }
+
+        if (currentLevel) {
+            // 每次運動完成減少一定血量
+            const damagePerExercise = 20; // 可以根據需要調整
+            monsterHP -= damagePerExercise;
+            
+            // 檢查怪物是否被擊敗
+            if (monsterHP <= 0) {
+                // 怪物被擊敗
+                monsterDefeated();
+            }
+            
+            // 更新UI
+            updateMonsterUI();
         }
         
         // 怪物受傷處理
@@ -1349,26 +1502,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 顯示成就通知
-    function showAchievementNotification(achievementTitle) {
-        const notification = document.createElement('div');
-        notification.className = 'achievement-notification';
-        notification.innerHTML = `
-            <div class="achievement-icon">🏆</div>
-            <div class="achievement-text">
-                <h3>恭喜獲得成就！</h3>
-                <p>${achievementTitle}</p>
-            </div>
-        `;
 
-        document.body.appendChild(notification);
-
-        // 3秒後自動消失
-        setTimeout(() => {
-            notification.classList.add('fade-out');
+    function showAchievementNotification(title, description) {
+        const notification = document.getElementById('achievement-notification');
+        const titleElement = document.getElementById('notification-title');
+        const descriptionElement = document.getElementById('notification-description');
+        
+        if (notification && titleElement && descriptionElement) {
+            titleElement.textContent = title;
+            descriptionElement.textContent = description;
+            
+            notification.classList.add('show');
+            
+            // 延長顯示時間到5秒
             setTimeout(() => {
-                document.body.removeChild(notification);
-            }, 1000);
-        }, 3000);
+                notification.classList.remove('show');
+            }, 5000);
+        }
     }
 
     // 添加成就通知的樣式
@@ -1531,7 +1681,171 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// 在現有的realtime.js中添加以下代碼（在文件末尾）
 
+// 監聽開始關卡挑戰事件
+document.addEventListener('startLevelChallenge', function(e) {
+    const levelId = e.detail.levelId;
+    const userId = e.detail.userId;
+    
+    console.log(`開始關卡挑戰: 關卡ID=${levelId}, 用戶ID=${userId}`);
+    
+    // 設置運動目標（根據關卡難度）
+    const targetSets = Math.min(3 + Math.floor(levelId / 2), 10); // 隨關卡增加組數，最多10組
+    const targetReps = Math.min(8 + Math.floor(levelId / 3), 15); // 隨關卡增加次數，最多15次
+    
+    // 更新UI
+    document.getElementById('sets').value = targetSets;
+    document.getElementById('reps').value = targetReps;
+    
+    // 自動選擇運動類型（根據關卡ID循環選擇不同運動）
+    const exerciseTypes = ['squat', 'bicep-curl', 'shoulder-press', 'push-up', 'pull-up', 'dumbbell-row'];
+    const exerciseIndex = (levelId - 1) % exerciseTypes.length;
+    document.getElementById('exercise-type').value = exerciseTypes[exerciseIndex];
+    
+    // 更新怪物血量
+    const monsterHP = 100 + (levelId - 1) * 20; // 隨關卡增加血量
+    document.getElementById('monster-hp').textContent = monsterHP;
+    
+    // 自動開始偵測
+    document.getElementById('start-detection').click();
+    
+    // 顯示教練提示
+    updateCoachTip(`關卡${levelId}挑戰開始！完成${targetSets}組，每組${targetReps}次${getExerciseNameChinese(exerciseTypes[exerciseIndex])}來擊敗怪物！`);
+});
+
+
+document.addEventListener('levelStarted', function(e) {
+    const levelData = e.detail.levelData;
+    console.log('關卡已開始:', levelData);
+    
+    // 設置當前關卡資訊
+    currentLevel = levelData;
+    currentMonsterIndex = 0;
+    totalMonsters = levelData.monster_count || 1;
+    monsterHP = levelData.monster_hp || 100;
+    initialMonsterHP = monsterHP;
+    
+    // 更新UI顯示
+    updateMonsterUI();
+    
+    // 自動開始偵測
+    const exerciseType = document.getElementById('exercise-type').value;
+    const weight = document.getElementById('weight').value || 0;
+    const sets = document.getElementById('sets').value || 1;
+    const reps = document.getElementById('reps').value || 10;
+    
+    // 發送開始偵測請求
+    socket.emit('start_detection', {
+        exercise_type: exerciseType,
+        weight: weight,
+        sets: sets,
+        reps: reps,
+        level_id: currentLevel.level_id
+    });
+    
+    console.log('開始偵測請求已發送');
+    
+    // 更新UI狀態
+    const startDetectionBtn = document.getElementById('start-detection');
+    const stopDetectionBtn = document.getElementById('stop-detection');
+    if (startDetectionBtn) startDetectionBtn.disabled = true;
+    if (stopDetectionBtn) stopDetectionBtn.disabled = false;
+});
+
+// 運動完成時觸發經驗值獲取
+function onExerciseCompleted() {
+    // 獲取當前學號
+    const studentId = document.getElementById('student-id').value || 'guest';
+    
+    // 計算獲得的經驗值（基於完成的運動量和質量）
+    const completedCount = parseInt(document.getElementById('exercise-count').textContent) || 0;
+    const qualityScore = parseInt(document.querySelector('.quality-value').textContent) || 0;
+    
+    // 基礎經驗值 + 質量獎勵
+    const expGained = completedCount * 5 + Math.floor(qualityScore / 20) * 10;
+    
+    // 發送到伺服器更新經驗值
+    fetch('/api/game/add_exp', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            user_id: studentId,
+            exp: expGained
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log(`獲得經驗值: ${expGained}`);
+            
+            // 觸發經驗值更新事件
+            document.dispatchEvent(new CustomEvent('exerciseCompleted', {
+                detail: {
+                    exp: expGained,
+                    studentId: studentId
+                }
+            }));
+            
+            // 檢查是否擊敗怪物
+            const targetSets = parseInt(document.getElementById('sets').value) || 3;
+            const targetReps = parseInt(document.getElementById('reps').value) || 10;
+            const totalRequired = targetSets * targetReps;
+            
+            if (completedCount >= totalRequired) {
+                // 怪物被擊敗
+                updateCoachTip(`太棒了！你完成了挑戰，獲得了${expGained}點經驗值！`);
+                
+                // 更新怪物血量為0
+                document.getElementById('monster-hp').textContent = '0';
+                
+                // 顯示勝利效果（可以添加動畫或音效）
+                showVictoryEffect();
+            }
+        }
+    })
+    .catch(error => {
+        console.error('更新經驗值失敗:', error);
+    });
+}
+
+// 獲取運動類型的中文名稱
+function getExerciseNameChinese(exerciseType) {
+    const exerciseNames = {
+        'squat': '深蹲',
+        'bicep-curl': '二頭彎舉',
+        'shoulder-press': '肩推',
+        'push-up': '伏地挺身',
+        'pull-up': '引體向上',
+        'dumbbell-row': '啞鈴划船'
+    };
+    
+    return exerciseNames[exerciseType] || exerciseType;
+}
+
+// 更新教練提示
+function updateCoachTip(message) {
+    const coachTipElement = document.querySelector('.coach-tip-text');
+    if (coachTipElement) {
+        coachTipElement.textContent = message;
+    }
+}
+
+// 顯示勝利效果
+function showVictoryEffect() {
+    // 可以添加勝利動畫或音效
+    const monsterContainer = document.querySelector('.monster-container');
+    if (monsterContainer) {
+        monsterContainer.classList.add('defeated');
+        
+        // 3秒後恢復
+        setTimeout(() => {
+            monsterContainer.classList.remove('defeated');
+        }, 3000);
+    }
+}
 
 
 (function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9199a4739c50827c',t:'MTc0MDg0MjQ2OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();

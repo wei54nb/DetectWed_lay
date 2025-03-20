@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, redirect, url_for
 
 # 创建蓝图
 main_bp = Blueprint('main', __name__)
@@ -28,10 +28,10 @@ def classroom():
 
 @main_bp.route('/login')
 def login():
+    # 直接返回登录页面，而不是重定向
     return render_template('login.html')
 
 @main_bp.route('/logout')
 def logout():
-    # 实现登出逻辑
-    # ...
-    return redirect(url_for('main.index'))
+    # 重定向到auth蓝图的登出路由
+    return redirect(url_for('auth.logout'))

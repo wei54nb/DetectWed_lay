@@ -56,11 +56,32 @@ def create_app(config_name='development'):
     bcrypt.init_app(app)
     
     # 注册蓝图
+    from app.routes.auth_routes import auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+
     from app.routes.main_routes import main_bp
     app.register_blueprint(main_bp)
-    
+
     from app.routes.exercise_routes import exercise_bp
     app.register_blueprint(exercise_bp)
+
+    from app.routes.api_routes import api_bp
+    app.register_blueprint(api_bp)
+
+    from app.routes.dashboard_routes import dashboard_bp  
+    app.register_blueprint(dashboard_bp)  
+
+
+    
+    
+    from app.routes.user_routes import user_bp
+    from app.routes.game_routes import game_bp  # 添加游戏蓝图导入
+    
+   
+    app.register_blueprint(user_bp)
+    app.register_blueprint(game_bp)  # 注册游戏蓝图
+
+    
     
     # 初始化模型
 # 在應用上下文中執行模型加載

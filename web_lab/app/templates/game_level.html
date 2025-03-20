@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>運動冒險-關卡挑戰</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/game_level.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="level-info">
+                <h2 id="level-title">第1关: 初始挑戰</h2>
+                <div class="progress-info">
+                    <span id="monsters-defeated">0</span>/<span id="total-monsters">3</span> 怪物
+                </div>
+            </div>
+            <div class="user-stats">
+                <div class="hp-container">
+                    <div class="hp-label">生命值:</div>
+                    <div class="hp-bar">
+                        <div class="hp-bar-fill" id="player-hp-bar"></div>
+                    </div>
+                    <div class="hp-value"><span id="player-hp">100</span>/100</div>
+                </div>
+            </div>
+            <button id="exit-btn" class="game-btn">退出關卡</button>
+        </div>
+        
+        <div class="game-content">
+            <div class="exercise-area">
+                <div class="video-container">
+                    <video id="video-element" autoplay></video>
+                    <canvas id="pose-canvas"></canvas>
+                    
+                    <div class="exercise-info">
+                        <div class="exercise-type">當前運動: <span id="current-exercise">深蹲</span></div>
+                        <div class="rep-counter">次數: <span id="rep-count">0</span>/<span id="target-reps">10</span></div>
+                        <div class="set-counter">組數: <span id="set-count">0</span>/<span id="target-sets">3</span></div>
+                    </div>
+                    
+                    <div class="quality-score">
+                        <div class="quality-label">動作質量:</div>
+                        <div class="quality-value"><span id="quality-score">0</span><span class="quality-max">/100</span></div>
+                    </div>
+                </div>
+                
+                <div class="coach-tip-container">
+                    <div class="coach-tip-content" id="coach-tip">
+                        準備好來運動嗎！
+                    </div>
+                </div>
+            </div>
+            
+            <div class="monster-area">
+                <div class="monster-info">
+                    <div class="monster-name" id="monster-name">小型史萊姆</div>
+                    <div class="hp-container">
+                        <div class="hp-label">怪物血量:</div>
+                        <div class="hp-bar">
+                            <div class="hp-bar-fill" id="monster-hp-bar"></div>
+                        </div>
+                        <div class="hp-value"><span id="monster-hp">100</span>/<span id="monster-max-hp">100</span></div>
+                    </div>
+                </div>
+                
+                <div id="monster-container" class="monster-container">
+                    <!-- 3D怪物模型将在这里渲染 -->
+                </div>
+                
+                <div class="monster-dialogue" id="monster-dialogue">
+                    来吧，讓我看看你的實力！
+                </div>
+            </div>
+        </div>
+        
+        <!-- 關卡完成彈窗 -->
+        <div class="level-complete-modal" id="level-complete-modal">
+            <div class="modal-content">
+                <h2>关卡完成！</h2>
+                <div class="rewards-container">
+                    <div class="reward-item">
+                        <div class="reward-icon">⭐</div>
+                        <div class="reward-info">
+                            <div class="reward-label">獲取經驗值:</div>
+                            <div class="reward-value" id="exp-reward">+50</div>
+                        </div>
+                    </div>
+                    <div class="reward-item">
+                        <div class="reward-icon">🏆</div>
+                        <div class="reward-info">
+                            <div class="reward-label">怪物擊敗:</div>
+                            <div class="reward-value" id="monsters-defeated-count">3</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="achievements-container" id="new-achievements-container">
+                    <!-- 新解锁的成就将在这里显示 -->
+                </div>
+                <div class="modal-buttons">
+                    <button id="next-level-btn" class="game-btn primary-btn">下一關卡</button>
+                    <button id="return-map-btn" class="game-btn">返回地圖</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/game_level.js') }}"></script>
+</body>
+</html>

@@ -14,6 +14,9 @@ class Config:
         'password': '1234',
         'database': 'nkust_exercise'
     }
+    @staticmethod
+    def init_app(app):
+        pass
     
     # 文件上传配置
     UPLOAD_FOLDER = 'uploads'

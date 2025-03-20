@@ -1,7 +1,7 @@
 # 修改导入语句，确保从正确的模块导入
 from app import create_app
 from app import socketio
-import logging  # 添加这一行导入logging模块
+import logging
 import sys
 import threading
 import time
@@ -20,85 +20,44 @@ logging.basicConfig(
 )
 
 # 添加启动信息
-print("正在启动应用...")#還是不行還是不行
+print("正在啟動應用...")
 logger = logging.getLogger(__name__)
-logger.info("正在初始化Flask应用")
+logger.info("正在初始化Flask應用")
 
 # 创建Flask应用实例
 app = create_app()
 
+# 確保靜態文件路徑設置正確
 app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 app.static_url_path = '/static'
 
-# 添加心跳函数定义
-def heartbeat():
-    """发送心跳信号以保持服务器活跃"""
-    logger.info("心跳线程已启动")
-    while True:
-        try:
-            # 每30秒记录一次心跳信息
-            logger.debug("服务器心跳正常")
-            time.sleep(30)
-        except Exception as e:
-            logger.error(f"心跳线程出错: {e}")
-            time.sleep(5)  # 出错后等待5秒再继续
+# 添加日誌以檢查靜態文件路徑
+logger.info(f"靜態文件路徑: {app.static_folder}")
+logger.info(f"靜態URL路徑: {app.static_url_path}")
 
-# 添加资源清理函数
-def cleanup_resources():
-    """清理应用资源"""
+# 初始化遊戲數據庫
+def init_game_database():
+    """初始化遊戲數據庫"""
     try:
-        # 导入exercise_routes模块
-        from app.routes.exercise_routes import detection_active
-        from app.routes import exercise_routes
-        # 停止检测线程
-        if detection_active:
-            logger.info("正在停止检测线程...")
-            exercise_routes.detection_active = False  # 直接修改模塊中的變量
-            time.sleep(1)  # 给线程一些时间停止
+        # 導入遊戲數據庫初始化腳本
+        from scripts.init_game_db import create_game_tables
         
-        # 清理摄像头资源
-        from app.services.camera_service import release_camera
-        release_camera()
-        
-        logger.info("资源清理完成")
+        # 創建遊戲相關的表格
+        if create_game_tables():
+            logger.info("遊戲數據庫初始化成功")
+        else:
+            logger.error("遊戲數據庫初始化失敗")
     except Exception as e:
-        logger.error(f"清理资源时出错: {e}")
+        logger.error(f"遊戲數據庫初始化出錯: {str(e)}")
+        traceback.print_exc()
+
+# 在應用啟動前初始化遊戲數據庫
+init_game_database()
 
 if __name__ == '__main__':
-    # 添加更多启动信息
-    print(f"应用已初始化，正在启动服务器在 http://localhost:5000")
-    logger.info("服务器正在启动...")
-    
-    # 启动心跳线程
-    heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
-    heartbeat_thread.start()
-    
-    # 使用socketio启动应用而不是app.run()
-    print("服务器已启动，等待连接...")
     try:
-        # 尝试使用不同的参数启动socketio
-        socketio.run(
-            app, 
-            host='0.0.0.0', 
-            port=5000, 
-            debug=True, 
-            allow_unsafe_werkzeug=True,
-            use_reloader=False  # 禁用重载器，可能导致问题
-        )
+        logger.info("正在啟動Flask應用")
+        socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
     except Exception as e:
-        logger.error(f"启动服务器时出错: {e}")
-        logger.error(traceback.format_exc())
-    finally:
-        # 清理资源
-        cleanup_resources()
-        
-        # 这行代码通常不会执行，除非socketio.run()返回
-        logger.warning("socketio.run() 已返回，服务器可能已停止")
-        # 保持程序运行，不让它立即退出
-        print("服务器已停止，按Ctrl+C退出程序...")
-        try:
-            # 防止程序立即退出
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("程序已手动停止")
+        logger.error(f"應用啟動失敗: {str(e)}")
+        traceback.print_exc()

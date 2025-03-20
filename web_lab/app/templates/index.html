@@ -659,7 +659,7 @@
             <div class="user-info">
                 {% if current_user.is_authenticated %}
                 <span>歡迎, {{ current_user.username }} ({{ current_user.role }})</span>
-                <a href="{{ url_for('main.logout') }}" class="button">登出</a>
+                <a href="{{ url_for('auth.logout') }}" class="button">登出</a>
                 {% else %}
                 <a href="{{ url_for('main.login') }}" class="button">登入</a>
                 {% endif %}
@@ -980,21 +980,38 @@
         console.log("🔍 當前登入使用者:", currentUser);  // 檢查是否正確傳遞
 
         const CALORIES_PER_REP = {
-            'squat': 0.32,                //深蹲每次消耗 0.32 千卡
-            'bicep-curl': 0.15,             //0.15千卡
-            'shoulder-press': 0.2,
-            'push-up': 0.35,
-            'pull-up': 0.5
+            'squat': 0.5,
+            'bicep-curl': 0.3,
+            'shoulder-press': 0.4,
+            'push-up': 0.3,
+            'pull-up': 0.5,
+            'dumbbell-row': 0.4
         };
 
-        let currentPeriod = 'week';
+        // 全局变量
         let progressChart = null;
         let activityChart = null;
+        let currentPeriod = 'week'; // 默认显示一周的数据
+        let chartsInitialized = false; // 添加标志变量
 
+       
         // 初始化圖表
         function initCharts() {
+            // 如果图表已经初始化，先销毁它们
+            if (progressChart) {
+                progressChart.destroy();
+                progressChart = null;
+            }
+            
+            if (activityChart) {
+                activityChart.destroy();
+                activityChart = null;
+            }
+            
             const progressCtx = document.getElementById('progress-chart').getContext('2d');
             const activityCtx = document.getElementById('activity-chart').getContext('2d');
+            
+            // 设置图表高度
             document.getElementById('progress-chart').style.height = "260px";
             document.getElementById('activity-chart').style.height = "260px";
 
@@ -1019,7 +1036,7 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,  // 讓圖表不強制維持長寬比
+                    maintainAspectRatio: false,
                     interaction: {
                         intersect: false,
                         mode: 'index'
@@ -1038,7 +1055,7 @@
                             backgroundColor: '#8884d8'
                         },
                         {
-                            label: '運動次數',
+                            label: '次數',
                             data: [],
                             backgroundColor: '#82ca9d'
                         }
@@ -1046,7 +1063,7 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false, // 讓圖表不強制維持長寬比
+                    maintainAspectRatio: false,
                     scales: {
                         y: {
                             beginAtZero: true
@@ -1054,73 +1071,199 @@
                     }
                 }
             });
+            
+            chartsInitialized = true;
         }
 
         // 更新統計數據
         function updateStats(data) {
-            console.log("📉 更新圖表數據:", data); // 🔍 檢查數據是否進入圖表
+            // 添加防御性检查
+            if (!data || !Array.isArray(data)) {
+                console.error("updateStats 接收到无效数据:", data);
+                return; // 直接返回，不更新任何内容
+            }
 
             const totalCalories = data.reduce((sum, day) => sum + day.calories, 0);
             const totalSets = data.reduce((sum, day) => sum + day.totalSets, 0);
+            const activeDays = data.length;
+
             document.getElementById('total-calories').textContent = `${Math.round(totalCalories)} kcal`;
             document.getElementById('total-sets').textContent = totalSets;
-            document.getElementById('active-days').textContent = data.length;
+            document.getElementById('active-days').textContent = activeDays;
 
-            // ✅ 確保圖表更新
-            progressChart.data.labels = data.map(d => d.date);
-            progressChart.data.datasets[0].data = data.map(d => d.totalReps);
-            progressChart.data.datasets[1].data = data.map(d => d.calories);
-            progressChart.update();
+            // 更新圖表
+            const labels = data.map(d => d.date);
+            
+            // 确保图表已初始化
+            if (progressChart && progressChart.data) {
+                progressChart.data.labels = labels;
+                progressChart.data.datasets[0].data = data.map(d => d.totalReps);
+                progressChart.data.datasets[1].data = data.map(d => d.calories);
+                progressChart.update();
+            } else {
+                console.error("进度图表未初始化");
+            }
+            
+            if (activityChart && activityChart.data) {
+                activityChart.data.labels = labels;
+                activityChart.data.datasets[0].data = data.map(d => d.totalSets);
+                activityChart.data.datasets[1].data = data.map(d => d.totalReps);
+                activityChart.update();
+            } else {
+                console.error("活动图表未初始化");
+            }
+        }
 
-            activityChart.data.labels = data.map(d => d.date);
-            activityChart.data.datasets[0].data = data.map(d => d.totalSets);
-            activityChart.data.datasets[1].data = data.map(d => d.totalReps);
-            activityChart.update();
+        // 切換週期
+        function switchPeriod(period) {
+            currentPeriod = period;
+            fetchData();
         }
 
 
         // 獲取數據
         async function fetchData() {
             try {
+                console.log("正在获取仪表盘数据...");
                 const response = await fetch('/api/dashboard_data');
+                
+                if (!response.ok) {
+                    console.error(`API请求失败: ${response.status} ${response.statusText}`);
+                    return;
+                }
+                
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    console.error("API返回的不是JSON格式:", contentType);
+                    return;
+                }
+                
                 const result = await response.json();
+                console.log("📊 後端回傳數據:", result);
 
-                if (result.success) {
-                    const processedData = processData(result.records);
-                    updateStats(processedData);
+                if (result.success && result.records) {
+                    // 确保 records 是一个数组
+                    if (Array.isArray(result.records)) {
+                        // 根据当前时间范围过滤数据
+                        let filteredRecords = filterRecordsByPeriod(result.records, currentPeriod);
+                        console.log("过滤后的数据:", filteredRecords);
+                        
+                        const processedData = processData(filteredRecords);
+                        console.log("📈 處理後的數據:", processedData);
+                        
+                        updateStats(processedData);
+                    } else {
+                        console.error("API返回的records不是数组:", result.records);
+                    }
+                } else {
+                    console.error("获取数据失败:", result.message || "未知错误");
                 }
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('获取数据时出错:', error);
             }
+        }
+
+// 根据时间范围过滤记录
+        function filterRecordsByPeriod(records, period) {
+            // 添加防御性检查
+            if (!records || !Array.isArray(records)) {
+                console.error("filterRecordsByPeriod 接收到无效数据:", records);
+                return []; // 返回空数组
+            }
+
+            const now = new Date();
+            let startDate;
+            
+            switch(period) {
+                case 'day':
+                    startDate = new Date(now.setHours(0, 0, 0, 0));
+                    break;
+                case 'week':
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - 7);
+                    break;
+                case 'month':
+                    startDate = new Date(now);
+                    startDate.setMonth(now.getMonth() - 1);
+                    break;
+                default:
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - 7);
+            }
+            
+            return records.filter(record => {
+                // 确保记录有日期字段
+                if (!record || !record.date) return false;
+                
+                try {
+                    const recordDate = new Date(record.date);
+                    return recordDate >= startDate;
+                } catch (e) {
+                    console.warn("无法解析日期:", record.date, e);
+                    return false;
+                }
+            });
         }
 
         // 處理數據
         function processData(records) {
+            // 添加防御性检查
+            if (!records || !Array.isArray(records)) {
+                console.error("processData 接收到无效数据:", records);
+                return []; // 返回空数组而不是继续处理
+            }
+
             const groupedData = {}; // 用來存放每一天的數據
 
+            // 按日期分組
             records.forEach(record => {
-                const date = new Date(record.timestamp).toLocaleDateString(); // 只取日期
+                // 确保 record 是有效对象
+                if (!record || typeof record !== 'object') {
+                    console.warn("跳过无效记录:", record);
+                    return; // 跳过这条记录
+                }
+
+                // 确保 date 字段存在
+                if (!record.date) {
+                    console.warn("记录缺少日期字段:", record);
+                    return; // 跳过这条记录
+                }
+
+                // 只取日期部分
+                const date = record.date.split(' ')[0];
+                
                 if (!groupedData[date]) {
                     groupedData[date] = {
-                        date,
+                        date: date,
                         totalSets: 0,
                         totalReps: 0,
                         calories: 0,
                         exercises: new Set()
                     };
                 }
-
-                groupedData[date].totalSets += record.sets;
-                groupedData[date].totalReps += record.reps;
-                groupedData[date].exercises.add(record.exercise_type);
-                groupedData[date].calories += record.reps * (CALORIES_PER_REP[record.exercise_type] || 0);
+                
+                // 确保数值类型正确
+                const sets = parseInt(record.sets) || 0;
+                const reps = parseInt(record.reps) || 0;
+                
+                groupedData[date].totalSets += sets;
+                groupedData[date].totalReps += reps;
+                
+                // 确保 exercise_type 字段存在
+                if (record.exercise_type) {
+                    groupedData[date].exercises.add(record.exercise_type);
+                    
+                    // 计算卡路里消耗
+                    const caloriesPerRep = CALORIES_PER_REP[record.exercise_type] || 0.3;
+                    groupedData[date].calories += reps * caloriesPerRep;
+                }
             });
 
-            console.log("📊 分組後的數據:", groupedData); // 🔍 檢查處理後的數據
+            console.log("分组后的数据:", groupedData);
 
-            return Object.values(groupedData);
+            // 转换为数组并按日期排序
+            return Object.values(groupedData).sort((a, b) => new Date(a.date) - new Date(b.date));
         }
-
 
         async function fetchData() {
             try {
@@ -1144,9 +1287,16 @@
 
         // 事件監聽器設置
         document.querySelectorAll('.time-button').forEach(button => {
-            button.addEventListener('click', () => {
-                document.querySelector('.time-button.active').classList.remove('active');
-                button.classList.add('active');
+            button.addEventListener('click', function() {
+                // 移除所有按鈕的active類
+                document.querySelectorAll('.time-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // 添加當前按鈕的active類
+                this.classList.add('active');
+                
+                // 更新當前時間範圍並重新獲取數據
                 currentPeriod = button.dataset.period;
                 fetchData();
             });
@@ -1158,28 +1308,27 @@
             fetchData();
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            const progressCtx = document.getElementById('progress-chart')?.getContext('2d');
-            const activityCtx = document.getElementById('activity-chart')?.getContext('2d');
-
-            if (!progressCtx || !activityCtx) {
-                console.error("❌ 圖表 <canvas> 未找到");
-                return;
-            }
-
-            progressChart = new Chart(progressCtx, {
-                type: 'line',
-                data: {labels: [], datasets: []},
-                options: {responsive: true}
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("页面加载完成，初始化图表");
+            initCharts();
+            fetchData();
+            
+            // 時間過濾按鈕事件監聽
+            document.querySelectorAll('.time-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    // 移除所有按鈕的active類
+                    document.querySelectorAll('.time-button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    // 添加當前按鈕的active類
+                    this.classList.add('active');
+                    
+                    // 更新當前時間範圍並重新獲取數據
+                    currentPeriod = this.dataset.period;
+                    fetchData();
+                });
             });
-
-            activityChart = new Chart(activityCtx, {
-                type: 'bar',
-                data: {labels: [], datasets: []},
-                options: {responsive: true}
-            });
-
-            fetchData(); // 🚀 取得數據並更新圖表
         });
 
 
