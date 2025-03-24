@@ -7,7 +7,7 @@ import threading
 from app import socketio
 from app.services import exercise_service
 from app.services.camera_service import get_camera, get_current_frame, release_camera
-
+import base64
 from datetime import datetime
 import queue
 from app.services.db_service import get_db_connection
@@ -112,88 +112,123 @@ def frame_processing_thread(exercise_type='squat'):
     
     logger.info(f"开始帧处理线程，运动类型: {exercise_type}")
     
+    frame_count = 0
+    log_interval = 100  # 每处理100帧记录一次日志
+    
     while detection_active:
         if not frame_buffer.empty():
-            # 从原始帧缓冲区获取帧
-            frame = frame_buffer.get()
-            
-            # 处理帧
-            processed_frame = exercise_service.process_frame_realtime(frame, exercise_type)
-            
-            # 将处理后的帧放入缓冲区
-            if not processed_frame_buffer.full():
-                processed_frame_buffer.put(processed_frame)
-            else:
-                # 如果缓冲区满了，移除最旧的帧
+            try:
+                # 从原始帧缓冲区获取帧
+                frame = frame_buffer.get()
+                
+                # 处理帧
+                processed_frame = exercise_service.process_frame_realtime(frame, exercise_type)
+                
+                # 将处理后的帧放入缓冲区
+                if not processed_frame_buffer.full():
+                    processed_frame_buffer.put(processed_frame)
+                
+                # 编码并发送帧 - 使用更高效的方式减小数据量
+                encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 50]  # 降低JPEG质量到50%
+                _, buffer = cv2.imencode('.jpg', processed_frame, encode_param)
+                frame_data = buffer.tobytes()
+                
+                # 使用简短的哈希值代替完整的base64编码，减少日志数据量
+                frame_hash = str(hash(frame_data) % 10000000)  # 生成简短哈希值
+                frame_base64 = base64.b64encode(frame_data).decode('utf-8')
+                
+                # 在日志中记录哈希值而不是完整的base64编码
+                logger.debug(f"发送视频帧 [哈希值: {frame_hash}]")
+                
+                # 发送帧到前端 - 前端仍然使用base64解码
+                socketio.emit('video_frame', {'frame': frame_base64}, namespace='/exercise')
+                
+                # 增加帧计数
+                frame_count += 1
+                
+                # 处理运动计数
                 try:
-                    processed_frame_buffer.get_nowait()
-                except queue.Empty:
-                    pass
-                processed_frame_buffer.put(processed_frame)
-        
-        time.sleep(0.01)  # 控制处理速率
+                    count = exercise_service.get_current_count()
+                    if count > 0:  # 只在計數大於 0 時發送
+                        if frame_count % log_interval == 0:  # 只在特定间隔记录日志
+                            logger.info(f"發送運動計數: {count}")
+                        socketio.emit('exercise_count', {'count': count}, namespace='/exercise')
+                except Exception as e:
+                    if frame_count % log_interval == 0:  # 减少错误日志频率
+                        logger.error(f"獲取運動計數時出錯: {e}")
+            except Exception as e:
+                logger.error(f"處理幀時出錯: {e}")
+                time.sleep(0.1)  # 出错时短暂暂停，避免CPU占用过高
     
     logger.info("帧处理线程已停止")
 
-@exercise_bp.route('/start_detection', methods=['POST'])
-def start_detection():
-    """启动运动检测 - 从旧版app.py移植"""
+@socketio.on('start_detection', namespace='/exercise')
+def handle_start_detection(data):
+    """处理开始检测请求"""
     global detection_active
     
     try:
-        data = request.json
-        exercise_type = request.args.get('exercise_type', 'squat')
+        logger.info(f'收到开始检测请求: {data}')
         
+        # 获取运动类型和其他参数
+        exercise_type = data.get('exercise_type', 'squat')
+        detection_line = data.get('detection_line', 0.5)
+        
+        # 可选参数
         weight = data.get('weight')
         reps = data.get('reps')  # 每组次数
         sets = data.get('sets')  # 组数
         student_id = data.get('student_id')
         
-        if not all([student_id, weight, reps, sets]):
-            return jsonify({'success': False, 'error': '请完整填写所有输入栏位'}), 400
-            
-        # 记录到数据库
-        connection = get_db_connection()
-        if connection:
-            cursor = connection.cursor()
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            cursor.execute("""
-                INSERT INTO exercise_info (student_id, weight, reps, sets, exercise_type, timestamp)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (student_id, weight, reps, sets, exercise_type, timestamp))
-            connection.commit()
-            cursor.close()
-            connection.close()
+        # 如果提供了学生ID和其他参数，记录到数据库
+        if all([student_id, weight, reps, sets]):
+            # 记录到数据库
+            connection = get_db_connection()
+            if connection:
+                cursor = connection.cursor()
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                cursor.execute("""
+                    INSERT INTO exercise_info (student_id, weight, reps, sets, exercise_type, timestamp)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (student_id, weight, reps, sets, exercise_type, timestamp))
+                connection.commit()
+                cursor.close()
+                connection.close()
         
         # 重置计数和状态
         exercise_service.reset_detection_state_complete()  # 使用完整的重置函數
         exercise_service.set_current_exercise_type(exercise_type)
-        exercise_service.set_exercise_params(int(reps), int(sets))
+        
+        # 如果提供了运动参数，设置它们
+        if reps and sets:
+            exercise_service.set_exercise_params(int(reps), int(sets))
+        
+        # 如果提供了检测线，设置它
+        if detection_line:
+            exercise_service.set_detection_line(detection_line)
         
         # 确保 exercise_service 中的 detection_active 也被设置
         exercise_service.detection_active = True
         
         # 发送初始数据到前端
-        socketio.emit('exercise_count_update', {'count': 0}, namespace='/exercise')
-        socketio.emit('remaining_sets_update', {'sets': int(sets)}, namespace='/exercise')
+        emit('exercise_count', {'count': 0})
         
-        # 根据运动类型发送初始品质评分
-        if exercise_type == 'squat':
-            socketio.emit('squat_quality', {'score': 0}, namespace='/exercise')
-        elif exercise_type == 'shoulder-press':
-            socketio.emit('shoulder_press_score', {'score': 0}, namespace='/exercise')
-        elif exercise_type == 'bicep-curl':
-            socketio.emit('bicep_curl_score', {'score': 0}, namespace='/exercise')
+        # 如果有组数信息，发送剩余组数
+        if sets:
+            emit('remaining_sets_update', {'sets': int(sets)})
+        
+        # 发送初始品质评分
+        emit('pose_quality', {'score': 0})
         
         # 发送初始角度数据
         initial_angles = {
             '左手肘': 0, '右手肘': 0, '左膝蓋': 0, '右膝蓋': 0,
             '左肩膀': 0, '右肩膀': 0, '左髖部': 0, '右髖部': 0
         }
-        socketio.emit('angle_data', initial_angles, namespace='/exercise')
+        emit('angle_data', {'angles': initial_angles})
         
         # 发送初始教练提示
-        socketio.emit('coach_tip', {'tip': f'已開始{exercise_type}運動檢測，請保持正確姿勢'}, namespace='/exercise')
+        emit('coach_tip', {'tip': f'已開始{exercise_type}運動檢測，請保持正確姿勢'})
         
         # 启动检测线程
         if not detection_active:
@@ -213,35 +248,40 @@ def start_detection():
             # 记录活跃线程
             active_threads = threading.enumerate()
             logger.info(f"活跃线程: {[t.name for t in active_threads]}")
-            
-            return jsonify({'success': True})
         
-        return jsonify({'success': True})
+        # 发送成功响应
+        emit('start_detection_response', {'status': 'success'})
+        logger.info("已发送开始检测成功响应")
+        
     except Exception as e:
         logger.error(f"启动检测失败: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        emit('start_detection_response', {'status': 'error', 'message': str(e)})
+        emit('error', {'message': f'启动检测失败: {str(e)}'})
 
 
-@exercise_bp.route('/stop_detection', methods=['POST'])
-def stop_detection():
-    """停止运动检测 - 从旧版app.py移植"""
+@socketio.on('stop_detection', namespace='/exercise')
+def handle_stop_detection():
+    """处理停止检测请求"""
     global detection_active
     
     try:
+        logger.info('收到停止检测请求')
         detection_active = False
         # 确保 exercise_service 中的 detection_active 也被设置
         exercise_service.detection_active = False
         logger.info("已停止运动检测")
-        return jsonify({'success': True})
+        emit('stop_detection_response', {'status': 'success'})
     except Exception as e:
         logger.error(f"停止检测失败: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        emit('stop_detection_response', {'status': 'error', 'message': str(e)})
+        emit('error', {'message': f'停止检测失败: {str(e)}'})
 
 @socketio.on('set_detection_line', namespace='/exercise')
-def handle_set_detection_line():
+def handle_set_detection_line(data):
     """处理设置检测线请求"""
-    logger.info('收到设置检测线请求')
-    exercise_service.set_detection_line()
+    logger.info(f'收到设置检测线请求: {data}')
+    line_position = data.get('line_position', 0.5)
+    exercise_service.set_detection_line(line_position)
 
 @socketio.on('connect', namespace='/exercise')
 def handle_connect():

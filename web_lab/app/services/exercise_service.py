@@ -148,9 +148,17 @@ def load_exercise_models():
     except Exception as e:
         logger.error(f"初始化运动分类模型时出错: {e}")
 
-def set_detection_line():
-    """设置检测线"""
+def set_detection_line(detection_line_value=0.5):
+    """设置检测线
+    
+    Args:
+        detection_line_value: 检测线的位置值，默认为0.5
+    """
     global detection_line_set, detection_line_y, knee_line_coords
+    
+    # 保存检测线值
+    global detection_line
+    detection_line = detection_line_value
     
     # 获取当前帧
     from app.routes.exercise_routes import get_current_frame
@@ -190,12 +198,13 @@ def set_detection_line():
                 detection_line_y = int((left_knee[1] + right_knee[1]) / 2)
                 detection_line_set = True
                 
-                logger.info(f"检测线已设置在 y={detection_line_y}")
+                logger.info(f"检测线已设置在 y={detection_line_y}，值为 {detection_line}")
                 
                 # 通知前端
                 socketio.emit('detection_line_set', {
                     'success': True,
-                    'detection_line_y': float(detection_line_y)  # 确保转换为Python原生类型
+                    'detection_line_y': float(detection_line_y),  # 确保转换为Python原生类型
+                    'detection_line': detection_line
                 }, namespace='/exercise')
                 
                 return True
@@ -275,6 +284,69 @@ def process_squat_exercise(frame, annotated_frame, angles, hip_midpoint, detecti
     # Use squat model for classification on original frame
     squat_results = current_model(frame, conf=0.3, verbose=False)
 
+    # 添加調試日誌
+    logger.info(f"深蹲檢測結果: {len(squat_results)} 個結果")
+    
+    # 確保每一幀都計算品質分數，不僅僅在姿勢變化時
+    # 獲取平均膝蓋角度和髖部角度
+    avg_knee_angle = (angles.get('左膝蓋', 180) + angles.get('右膝蓋', 180)) / 2
+    avg_hip_angle = (angles.get('左髖部', 180) + angles.get('右髖部', 180)) / 2
+    
+    # 記錄角度數據
+    logger.info(f"膝蓋角度: {avg_knee_angle:.1f}°, 髖部角度: {avg_hip_angle:.1f}°")
+    
+    # 檢查是否有有效的髖部中點和檢測線
+    if detection_line_set and hip_midpoint:
+        # 檢查髖部是否低於基準線
+        hip_below_line = hip_midpoint[1] > detection_line_y
+        
+        # 計算品質分數 (不依賴於姿勢分類)
+        if hip_below_line:
+            if avg_knee_angle < 90:  # Excellent squat standard
+                current_quality = 5
+                quality_text = "優秀"
+                quality_color = (0, 255, 0)  # 綠色
+            elif avg_knee_angle < 110:  # Good squat standard
+                current_quality = 4
+                quality_text = "良好"
+                quality_color = (0, 255, 255)  # 黃色
+            elif avg_knee_angle < 130:  # Not deep enough
+                current_quality = 3
+                quality_text = "一般"
+                quality_color = (0, 165, 255)  # 橙色
+            else:  # Barely squatting
+                current_quality = 2
+                quality_text = "需改進"
+                quality_color = (0, 0, 255)  # 紅色
+        else:
+            current_quality = 1  # Hip not above baseline
+            quality_text = "不夠深"
+            quality_color = (0, 0, 255)  # 紅色
+        
+        # 更新全局品質分數
+        squat_quality_score = current_quality
+        
+        # 在畫面上顯示品質分數
+        #cv2.putText(annotated_frame, f"品質分數: {squat_quality_score}/5 - {quality_text}", 
+        #            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, quality_color, 2)
+        
+        # 在畫面上顯示膝蓋角度
+        #cv2.putText(annotated_frame, f"膝蓋角度: {avg_knee_angle:.1f}°", 
+        #            (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        
+        # 發送品質分數到前端 (每一幀都發送)
+        socketio.emit('pose_quality', {'score': squat_quality_score})
+        socketio.emit('pose_quality', {'score': squat_quality_score}, namespace='/exercise')
+        logger.info(f"發送深蹲品質分數: {squat_quality_score}/5")
+    else:
+        logger.warning("無法計算深蹲品質分數: 檢測線未設置或髖部中點無效")
+        # 在畫面上顯示無法評分的信息
+        cv2.putText(annotated_frame, "無法評分: 檢測線未設置或髖部中點無效", 
+                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        # 發送0分表示無法評分
+        socketio.emit('pose_quality', {'score': 0})
+        socketio.emit('pose_quality', {'score': 0}, namespace='/exercise')
+
     if len(squat_results) > 0 and len(squat_results[0].boxes) > 0:
         best_box = squat_results[0].boxes[0]
         class_id = int(best_box.cls)
@@ -287,61 +359,29 @@ def process_squat_exercise(frame, annotated_frame, angles, hip_midpoint, detecti
         # Draw YOLO detection box on annotated frame
         cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
         label = f'{class_name} {conf:.2f}'
-        #cv2.putText(annotated_frame, label, (x1, y1 - 10),
-        #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(annotated_frame, label, (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        # If detection line is set and hip midpoint is valid, evaluate squat
-        if detection_line_set and hip_midpoint:
-            # Get average knee angle
-            avg_knee_angle = (angles.get('左膝蓋', 180) + angles.get('右膝蓋', 180)) / 2
-
-            # Improved squat counting and scoring logic
-            if last_pose is None:
-                last_pose = class_id
-            elif last_pose == 0 and class_id == 1:  # From prepare to squat
-                squat_state = "down"
-                # Check if hip is below baseline
-                hip_below_line = hip_midpoint[1] > detection_line_y
-
-                # Score based on knee angle and hip position
-                if hip_below_line:
-                    if avg_knee_angle < 90:  # Excellent squat standard
-                        squat_quality_score = 5  # Perfect score
-                    elif avg_knee_angle < 110:  # Good squat standard
-                        squat_quality_score = 4
-                    elif avg_knee_angle < 130:  # Not deep enough
-                        squat_quality_score = 3
-                    else:  # Barely squatting
-                        squat_quality_score = 2
-                else:
-                    squat_quality_score = 1  # Hip not below baseline
-
-                # Send score to frontend
-                socketio.emit('squat_quality', {'score': squat_quality_score}, namespace='/exercise')
-                logger.info(f"深蹲评分: {squat_quality_score}/5")
-
-            elif last_pose == 1 and class_id == 0:  # From squat back to prepare
-                current_time = time.time()
-                if current_time - last_squat_time > 0.8:  # Time interval to prevent false counts
-                    exercise_count += 1
-                    last_squat_time = current_time
-                    squat_state = "up"
-                    logger.info(f"Squat completed, count: {exercise_count}")
-                    socketio.emit('exercise_count_update', {'count': exercise_count}, namespace='/exercise')
-
+        # 姿勢計數邏輯 (保持不變)
+        if last_pose is None:
             last_pose = class_id
+        elif last_pose == 0 and class_id == 1:  # From prepare to squat
+            squat_state = "down"
+            # 姿勢變化時已經在上面計算了品質分數，這裡不需要重複計算
+            
+        elif last_pose == 1 and class_id == 0:  # From squat back to prepare
+            current_time = time.time()
+            if current_time - last_squat_time > 0.8:  # Time interval to prevent false counts
+                exercise_count += 1
+                last_squat_time = current_time
+                squat_state = "up"
+                logger.info(f"Squat completed, count: {exercise_count}")
+                socketio.emit('exercise_count_update', {'count': exercise_count}, namespace='/exercise')
 
-            # Display score on frame
-            #cv2.putText(annotated_frame, f'Score: {squat_quality_score}/5', (10, 120),
-            #            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        last_pose = class_id
 
-            # Display average knee angle and current squat state
-            #cv2.putText(annotated_frame, f'Knee angle: {avg_knee_angle:.1f}',
-            #            (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-            #cv2.putText(annotated_frame, f'State: {squat_state}',
-            #            (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-
-            # Mark hip position relative to baseline
+        # Mark hip position relative to baseline
+        if hip_midpoint and detection_line_set:
             if hip_midpoint[1] > detection_line_y:
                 cv2.putText(annotated_frame, "Hip BELOW line", (200, 60),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
@@ -350,6 +390,7 @@ def process_squat_exercise(frame, annotated_frame, angles, hip_midpoint, detecti
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
     else:
         logger.warning(f"未检测到深蹲姿势分类! (squat/prepare)")
+
 
 
 def process_bicep_curl(frame, annotated_frame, keypoints, angles):
@@ -419,9 +460,10 @@ def process_bicep_curl(frame, annotated_frame, keypoints, angles):
         left_shoulder_point = tuple(map(int, left_shoulder))
         left_elbow_point = tuple(map(int, left_elbow))
         left_wrist_point = tuple(map(int, left_wrist))
-        cv2.circle(annotated_frame, left_shoulder_point, 5, (0, 255, 255), -1)
-        cv2.circle(annotated_frame, left_elbow_point, 5, (0, 255, 255), -1)
-        cv2.circle(annotated_frame, left_wrist_point, 5, (0, 255, 255), -1)
+
+        cv2.circle(annotated_frame, left_shoulder_point, 5, (0, 255, 255), -1) 
+        cv2.circle(annotated_frame, left_elbow_point, 5, (0, 255, 255), -1)     
+        cv2.circle(annotated_frame, left_wrist_point, 5, (0, 255, 255), -1) 
         cv2.line(annotated_frame, left_shoulder_point, left_elbow_point, (0, 255, 0), 2)
         cv2.line(annotated_frame, left_elbow_point, left_wrist_point, (0, 255, 0), 2)
         angles['左手肘'] = calculate_angle(left_shoulder, left_elbow, left_wrist)
@@ -499,6 +541,7 @@ def process_bicep_curl(frame, annotated_frame, keypoints, angles):
         else:
             bicep_quality_score = 1
 
+
         shoulder_stability_score = 5  # 預設為最佳
         if left_arm_valid and '左肩膀' in angles:
             shoulder_angle = angles['左肩膀']
@@ -523,12 +566,19 @@ def process_bicep_curl(frame, annotated_frame, keypoints, angles):
         final_score = round(combined_score)
         score_description = get_score_description(final_score)
 
-        socketio.emit('bicep_curl_score', {'score': final_score},namespace='/exercise')
-        logger.info(f"二頭彎舉評分: {final_score}/5 (肘部: {bicep_quality_score}, 肩穩定性: {shoulder_stability_score})")
-        cv2.putText(annotated_frame, f'Score: {final_score}/5 - {score_description}', (10, 120),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-        cv2.putText(annotated_frame, f'Elbow: {avg_elbow_angle:.1f}° | Stability: {shoulder_stability_score}/5',
-                    (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        # 修改：同時發送到默認命名空間和 /exercise 命名空間
+        socketio.emit('pose_quality', {'score': final_score})
+        socketio.emit('pose_quality', {'score': final_score}, namespace='/exercise')
+        logger.info(f"二頭彎舉品質評分: {final_score}/5 (已發送到兩個命名空間)")
+        
+        # 保留原有的事件發送
+        socketio.emit('bicep_curl_score', {'score': final_score}, namespace='/exercise')
+        
+        #cv2.putText(annotated_frame, f'Score: {final_score}/5 - {score_description}', (10, 120),
+        #            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        #cv2.putText(annotated_frame, f'Elbow: {avg_elbow_angle:.1f}° | Stability: {shoulder_stability_score}/5',
+        #            (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
     else:
         reason = "無法進行評分: "
         if not (left_arm_valid or right_arm_valid):
@@ -537,7 +587,8 @@ def process_bicep_curl(frame, annotated_frame, keypoints, angles):
             reason += "偵測線未設置 "
         cv2.putText(annotated_frame, reason, (10, 120),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-        socketio.emit('bicep_curl_score', {'score': 0},namespace='/exercise')
+        socketio.emit('pose_quality', {'score': 0})
+        socketio.emit('pose_quality', {'score': 0}, namespace='/exercise')
         logger.info(reason)
 
     # Display debug info
@@ -624,16 +675,16 @@ def process_squat(frame, keypoints, angles):
                         }, namespace='/exercise')
         
         # 显示膝盖角度
-        cv2.putText(annotated_frame, f"膝盖角度: {int(avg_knee_angle)}", (10, 60),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        #cv2.putText(annotated_frame, f"膝盖角度: {int(avg_knee_angle)}", (10, 60),
+        #            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
     
     # 显示下蹲次数
-    cv2.putText(annotated_frame, f"下蹲次数: {exercise_count}", (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+    #cv2.putText(annotated_frame, f"下蹲次数: {exercise_count}", (10, 30),
+    #            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
     
     # 显示剩余组数
-    cv2.putText(annotated_frame, f"剩余组数: {remaining_sets}", (10, 90),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+    #cv2.putText(annotated_frame, f"剩余组数: {remaining_sets}", (10, 90),
+    #            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
     
     return annotated_frame
 
@@ -918,6 +969,11 @@ def process_frame_realtime(frame, exercise_type):
                     # Send angle data to frontend
                     socketio.emit('angle_data', angles, namespace='/exercise')
 
+                    current_quality = get_current_quality_score()
+                    # 確保使用5分制發送品質分數
+                    socketio.emit('pose_quality', {'score': current_quality})
+                    logger.info(f"發送品質分數: {current_quality}/5")
+
                     # Calculate hip midpoint
                     if not np.isnan(left_hip).any() and not np.isnan(right_hip).any():
                         hip_midpoint = ((int(left_hip[0]) + int(right_hip[0])) // 2,
@@ -973,18 +1029,21 @@ def process_frame_realtime(frame, exercise_type):
                             detection_line_set_shoulder = True
                             logger.info(f"肩推检测基准线已设置在Y={detection_line_y_shoulder}位置")
 
-        # Exercise-specific processing with original frame for classification
-        if exercise_type == "squat":
+
+        if exercise_type == 'squat':
+            # 處理深蹲運動
             process_squat_exercise(frame, annotated_frame, angles, hip_midpoint, detection_line_set, detection_line_y)
-            
+            current_quality = squat_quality_score
+            logger.info(f"當前深蹲品質分數: {current_quality}")
 
         elif exercise_type == "shoulder-press":
             process_shoulder_press(frame, annotated_frame, keypoints, angles, detection_line_y_shoulder)
-            
+            current_quality = bicep_quality_score
 
         elif exercise_type == "bicep-curl":
             process_bicep_curl(frame, annotated_frame, keypoints, angles)
-            
+            current_quality = bicep_quality_score
+
         else:
             process_other_exercise(frame, annotated_frame, exercise_type)
             
@@ -1000,22 +1059,46 @@ def process_frame_realtime(frame, exercise_type):
         status_text.append(f"Exercise: {exercise_type}")
         status_text.append(f"Frame: {annotated_frame.shape}")
 
-        for i, text in enumerate(status_text):
-            cv2.putText(annotated_frame, text, (10, 20 + i * 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        # 確保使用5分制發送品質分數到兩個命名空間
+        socketio.emit('pose_quality', {'score': current_quality})
+        socketio.emit('pose_quality', {'score': current_quality}, namespace='/exercise')
+        logger.info(f"發送品質分數: {current_quality}/5 (已發送到兩個命名空間)")
+
+        
+        #for i, text in enumerate(status_text):  # 將每個文本放在不同的行
+        #    cv2.putText(annotated_frame, text, (10, 20 + i * 20),
+        #                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
         return annotated_frame
 
     except Exception as e:
-        logger.error(f"Error in process_frame_realtime: {e}", exc_info=True)
-        # Display error on frame
+
+        # 如果有錯誤，創建一個錯誤幀
         if 'frame' in locals():
             error_frame = frame.copy() if frame is not None else np.zeros((480, 480, 3), dtype=np.uint8)
             cv2.putText(error_frame, f"Error: {str(e)}", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
             return error_frame
-        return np.zeros((480, 480, 3), dtype=np.uint8)  # Return black frame on complete failure
+        logger.error(f"處理幀時出錯: {e}", exc_info=True)
+        return create_error_frame(frame, f"處理錯誤: {str(e)}")
 
+
+def send_quality_score(score, feedback=None):
+    """發送品質分數到前端"""
+    # 確保分數在0-5範圍內
+    score = max(0, min(5, score))
+    
+    # 準備發送的數據
+    data = {'score': score}
+    if feedback:
+        data['feedback'] = feedback
+    
+    # 同時發送到默認命名空間和 /exercise 命名空間
+    socketio.emit('pose_quality', data)
+    socketio.emit('pose_quality', data, namespace='/exercise')
+    logger.info(f"發送品質分數: {score}/5, 反饋: {feedback} (已發送到兩個命名空間)")
+    
+    return score
 
 def process_shoulder_press(frame, annotated_frame, keypoints, angles, detection_line_y_shoulder):
     """Handle shoulder press exercise processing logic using original frame for classification"""
@@ -1175,8 +1258,12 @@ def process_shoulder_press(frame, annotated_frame, keypoints, angles, detection_
         shoulder_press_quality_score = convert_percent_to_rating(total_percent)
         score_description = get_score_description(shoulder_press_quality_score)
 
-        socketio.emit('shoulder_press_score', {'score': shoulder_quality_score}, namespace='/exercise')
+        # 修改：使用統一的 pose_quality 事件發送5分制分數
+        socketio.emit('pose_quality', {'score': shoulder_press_quality_score})
         logger.info(f"肩推評分: {shoulder_press_quality_score}/5 ({int(total_percent)}%)")
+        
+        # 保留原有的事件發送，確保兼容性
+        socketio.emit('shoulder_press_score', {'score': shoulder_press_quality_score}, namespace='/exercise')
         socketio.emit('exercise_count_update', {'count': exercise_count}, namespace='/exercise')
     else:
         reason = "無法進行評分: "
@@ -1186,7 +1273,8 @@ def process_shoulder_press(frame, annotated_frame, keypoints, angles, detection_
             reason += "手腕檢測失敗 "
         elif not ((left_wrist_valid and left_wrist_below) or (right_wrist_valid and right_wrist_below)):
             reason += "請將手腕舉高超過目標線 "
-        socketio.emit('shoulder_press_score', {'score': 0})
+        socketio.emit('pose_quality', {'score': 0})  # 添加：發送0分
+        socketio.emit('shoulder_press_score', {'score': 0}, namespace='/exercise')
         logger.info(reason)
 
     # 顯示除錯資訊（可選）
@@ -1247,7 +1335,7 @@ def get_current_angles():
 
 def get_current_quality_score():
     """获取当前品质评分"""
-    global squat_quality_score, bicep_quality_score
+    global squat_quality_score, bicep_quality_score, shoulder_quality_score
     exercise_type = get_current_exercise_type()
     
     if exercise_type == 'squat':
@@ -1270,3 +1358,18 @@ def update_coach_tip(tip):
     get_current_coach_tip.current_coach_tip = tip
     # 发送到前端
     socketio.emit('coach_tip', {'tip': tip}, namespace='/exercise')    
+
+# 添加日誌以跟踪運動計數更新
+def update_count(self, new_count):
+    """更新運動計數"""
+    if new_count > self.count:
+        logger.info(f"運動計數更新: {self.count} -> {new_count}")
+        self.count = new_count
+        return True
+    return False
+
+def get_current_count():
+    """獲取當前運動計數"""
+    global exercise_count
+    logger.debug(f"獲取當前運動計數: {exercise_count}")
+    return exercise_count

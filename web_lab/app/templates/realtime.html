@@ -1,223 +1,381 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NKUST - 即時動作分析</title>
-    
-    <!-- 外部函式庫 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    
-    <!-- 自定義樣式和腳本 -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/realtime.css') }}">
-    <script src="{{ url_for('static', filename='js/realtime.js') }}" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>健身冒險 - 即時偵測</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/realtime.css') }}">
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+        <!-- 添加 GLTFLoader -->
+        <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>   
+        <!-- 引入 OrbitControls (可選) -->
+        <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    </head>
 <body>
-<div class="header">
-    <div class="logo-container">
-        <img src="{{ url_for('static', filename='img/nkust.png') }}" alt="NKUST Logo">
-        <span>國立高雄科技大學</span>
-    </div>
-    <div class="user-info">
-        <div class="user-avatar">
-            <img src="{{ url_for('static', filename='img/avatar.png') }}" alt="用戶頭像">
-        </div>
-        <div class="user-stats">
-            <div class="username">{{ username|default('測試用戶') }}</div>
-            <div class="level-info">等級: <span id="user-level">1</span> | 關卡: <span id="current-level-display">1</span></div>
-        </div>
-        <div class="exp-progress-container">
-            <div class="exp-label">經驗值: <span id="current-exp">0</span>/<span id="next-level-exp">100</span></div>
-            <div class="exp-bar">
-                <div class="exp-bar-fill" id="exp-bar-fill"></div>
-            </div>
-            <!-- 簡易地圖顯示 -->
-            <div class="simple-map">
-                <div id="map-levels" class="map-levels"></div>
-                <button id="show-map-btn" class="small-button">查看地圖</button>
-            </div>
-        </div>
-    </div>
-    <div class="nav-buttons">
-        <a href="{{ url_for('main.index') }}" class="button">回首頁</a>
-        <button id="achievements-btn" class="button">成就</button>
-    </div>
-</div>
-
-<div class="content">
-    <div class="bottom-stats-container">
-        <div class="stats-card">
-            <div class="stats-label">完成次數</div>
-            <div class="stats-value" id="exercise-count-stats">0</div>
-        </div>
-        <button id="export-excel" class="export-button">導出戰績</button>
-    </div>
-
-    <div class="data-inputs">
-        <div class="input-group">
-            <label for="student-id">學號</label>
-            <input type="text" id="student-id" placeholder="請輸入學號">
-        </div>
-        <div class="input-group">
-            <label for="weight">重量(Kg)</label>
-            <input type="number" id="weight" placeholder="請輸入重量">
-        </div>
-        <div class="input-group">
-            <label for="sets">組數</label>
-            <input type="number" id="sets" placeholder="請輸入組數">
-        </div>
-        <div class="input-group">
-            <label for="reps">每組次數</label>
-            <input type="number" id="reps" placeholder="請輸入每組次數">
-        </div>
-    </div>
-
-    <div class="main-content-area">
-        <div class="video-container">
-            <img id="video-feed" src="{{ url_for('exercise.video_feed') }}" alt="Real-time Video Feed">
-        </div>
-    </div>
-
-    <div class="data-container">
-        <h2>即時數據</h2>
-        <div class="exercise-counter">
-            <div class="counter-label">運動次數</div>
-            <div class="counter-value" id="exercise-count">0</div>
+    <!-- 頁面載入動畫 -->
+    <div class="page-loader" id="page-loader">
+        <div class="loader-content">
+            <div class="loader-title">健身冒險</div>
+            <div class="loader-subtitle">正在進入第 <span id="current-level">1</span> 關</div>
             
+            <div class="loader-progress">
+                <div class="loader-progress-bar" id="loader-progress-bar"></div>
+            </div>
+            
+            <div class="loader-level-info">
+                <div class="loader-level-image">
+                    <img src="/static/img/levels/level1.png" alt="關卡圖片" id="level-image">
+                </div>
+                <div class="loader-level-details">
+                    <div class="loader-level-name" id="level-name">森林入口</div>
+                    <div class="loader-level-description" id="level-description">初始關卡，適合新手挑戰。完成基本運動來獲得經驗值。</div>
+                    <div class="loader-level-monsters" id="level-monsters">怪物：小型史萊姆 x3</div>
+                </div>
+            </div>
+            
+            <div class="loader-tips">提示：保持正確姿勢可以獲得更高的品質評分和額外經驗值！</div>
         </div>
-        <div class="exercise-counter">
-            <div class="counter-label">剩餘組數</div>
-            <div class="counter-value" id="remaining-sets">0</div>
-        </div>
+    </div>
 
-        <div class="control-panel">
-            <select id="exercise-type" class="exercise-selector">
-                <option value="squat">深蹲訓練</option>
-                <option value="bicep-curl">二頭訓練</option><div class="monster-area">
-                <option value="shoulder-press">肩推訓練</option>
-                <option value="push-up">伏地挺身</option>
-                <option value="pull-up">引體向上</option>
-                <option value="dumbbell-row">啞鈴划船</option>
-            </select>
-            <button id="start-detection" class="button">開始偵測</button>
-            <button id="stop-detection" class="button">停止偵測</button>
+    <!-- 頭部導航 -->
+    <header class="header">
+        <div class="logo-container">
+            <img src="/static/img/nkust.png" alt="健身冒險">
+            <span>健身冒險</span>
         </div>
-        <div class="angle-display">
-            <!-- 角度數據將在這裡動態更新 -->
+        
+        <div class="user-info">
+            <div class="user-avatar">
+                <img src="/static/img/avatar.png" alt="用戶頭像">
+            </div>
+            <div class="user-stats">
+                <div class="username">{{ current_user.username }}</div>
+                <div class="level-info">等級 <span id="user-level">1</span></div>
+            </div>
+            <div class="exp-progress-container">
+                <div class="exp-label">經驗值: <span id="current-exp">0</span>/<span id="next-level-exp">100</span></div>
+                <div class="exp-bar">
+                    <div class="exp-bar-fill" id="exp-bar-fill"></div>
+                </div>
+                <div class="simple-map">
+                    <div class="map-hint">點擊關卡可直接選擇</div>
+                    <div class="map-scroll-container" id="map-scroll-container">
+                        <div class="map-levels">
+                            <div class="map-level-item">
+                                <div class="map-level-dot completed">
+                                    <i class="fas fa-tree"></i>
+                                </div>
+                                <div class="map-level-label">森林</div>
+                            </div>
+                            <div class="map-level-item">
+                                <div class="map-level-dot active">
+                                    <i class="fas fa-mountain"></i>
+                                </div>
+                                <div class="map-level-label">山脈</div>
+                            </div>
+                            <div class="map-level-item">
+                                <div class="map-level-dot">
+                                    <i class="fas fa-water"></i>
+                                </div>
+                                <div class="map-level-label">湖泊</div>
+                            </div>
+                            <div class="map-level-item">
+                                <div class="map-level-dot">
+                                    <i class="fas fa-dungeon"></i>
+                                </div>
+                                <div class="map-level-label">洞窟</div>
+                            </div>
+                            <div class="map-level-item">
+                                <div class="map-level-dot">
+                                    <i class="fas fa-dragon"></i>
+                                </div>
+                                <div class="map-level-label">龍巢</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="map-controls">
+                        <button class="map-scroll-btn" id="scroll-left-btn"><i class="fas fa-chevron-left"></i></button>
+                        <button class="small-button" id="show-map-btn">查看完整地圖</button>
+                        <button class="map-scroll-btn" id="scroll-right-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
         </div>
+        
+        <div class="nav-buttons">
+            <a href="/" class="button">返回首頁</a>
+            <a href="/achievements" class="button secondary">成就</a>
+            <a href="/profile" class="button accent">個人檔案</a>
+        </div>
+    </header>
 
-        <div class="bottom-interaction-area">
-            <!-- 教練提示視窗放在左下角 -->
+    <!-- 主要內容區域 -->
+    <div class="content">
+        <div class="main-content-area">
+            <!-- 左側視頻區域 -->
+            <div class="video-container">
+                <img src="" alt="等待開始偵測..." id="video-feed" style="width: 100%; height: auto;">
+                <div class="video-overlay">
+                    <div class="video-top-bar">
+                        <div class="exercise-info">
+                            <div class="exercise-name" id="current-exercise-name">深蹲</div>
+                            <div class="exercise-details">
+                                重量: <span id="current-weight">0</span>kg | 
+                                目標: <span id="target-reps">10</span>次 x <span id="target-sets">3</span>組
+                            </div>
+                        </div>
+                        <div class="detection-status" id="detection-status">準備中</div>
+                    </div>
+                    <div class="video-bottom-bar">
+                        <div class="exercise-info">
+                            <div class="exercise-name">剩餘組數: <span id="remaining-sets">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右側怪物區域 - 移動到這裡與視頻區域並排 -->
+            <div class="monster-area">
+                <div class="hp-bar">
+                    <div class="hp-label">怪物血量</div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar-fill" id="monster-hp-bar"></div>
+                    </div>
+                    <div class="hp-value" id="monster-hp">100/100</div>
+                    <div class="monster-count" id="monster-count">怪物 1/1</div>
+                </div>
+                <div class="monster-container" id="monster-container">
+                    <div class="monster-scene-container" id="monster-scene">
+                        <!-- 3D怪物將由JavaScript渲染 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bottom-content-area">
+            <!-- 運動設定區域 - 縮小並移至底部 -->
+            <div class="data-container compact">
+                <div class="data-header">
+                    <div class="data-title">運動設定</div>
+                    <div class="data-subtitle">選擇運動類型和設定目標</div>
+                </div>
+                <div class="data-body">
+                    <div class="data-inputs">
+                        <div class="input-group">
+                            <label for="student-id">學號</label>
+                            <input type="text" id="student-id" placeholder="請輸入學號" value="{{ current_user.username }}">
+                        </div>
+                        <div class="input-group">
+                            <label for="exercise-type">運動類型</label>
+                            <select id="exercise-type" class="exercise-selector">
+                                <option value="squat">深蹲</option>
+                                <option value="bicep-curl">二頭彎舉</option>
+                                <option value="shoulder-press">肩推</option>
+                                <option value="push-up">伏地挺身</option>
+                                <option value="pull-up">引體向上</option>
+                                <option value="dumbbell-row">啞鈴划船</option>
+                            </select>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label for="weight">重量 (kg)</label>
+                                <input type="number" id="weight" placeholder="0" min="0" max="200" value="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="reps">次數/組</label>
+                                <input type="number" id="reps" placeholder="10" min="1" max="100" value="10">
+                            </div>
+                            <div class="input-group">
+                                <label for="sets">組數</label>
+                                <input type="number" id="sets" placeholder="3" min="1" max="10" value="3">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-stats-panel">
+                        <div class="exercise-counter">
+                            <div class="counter-label">運動次數</div>
+                            <div class="counter-value" id="exercise-count">0</div>
+                        </div>
+                        
+                        <div class="control-panel">
+                            <button class="button" id="start-detection">開始偵測</button>
+                            <button class="button secondary" id="stop-detection" disabled>停止偵測</button>
+                            <button class="button accent" id="reset-count">重置計數</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 教練提示區域 -->
             <div class="coach-tip-container">
                 <div class="coach-tip-header">
-                    <div class="coach-title">即時健身教練</div>
+                    <div class="coach-title">教練提示</div>
                     <div class="quality-display">
-                        <div class="quality-title">品質評分</div>
-                        <div class="quality-value">0</div>
-                        <div class="quality-max">/5</div>
+                        <div class="quality-title">未評分</div>
+                        <div class="quality-score-container">
+                            <span id="quality-score">0</span>/5
+                        </div>
                     </div>
                 </div>
                 <div class="coach-tip-content">
-                    <div class="coach-tip-text">
+                    <div class="coach-tip-text" id="coach-tip-text">
                         請選擇運動類型並開始偵測以獲得即時建議。
                     </div>
                 </div>
             </div>
+        </div>
         
-            <!-- 怪物區域 - 調整結構，血量在上，怪物在下 -->
-            <div class="monster-area">
-                <!-- 怪物血量條 -->
-                <div class="hp-bar">
-                    <div class="hp-label">怪物血量</div>
-                    <div class="hp-value" id="monster-hp">100</div>
-                    <div class="monster-count">怪物: 1/1</div>
+        <div class="bottom-stats-container">
+            <div class="stats-card">
+                <div class="stats-label">總運動次數</div>
+                <div class="stats-value" id="exercise-count-stats">0</div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-label">消耗熱量</div>
+                <div class="stats-value" id="calories-burned">0</div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-label">運動時間</div>
+                <div class="stats-value" id="exercise-time">00:00</div>
+            </div>
+            <button class="export-button" id="export-excel">匯出數據</button>
+        </div>
+    </div>
+    
+    <!-- ... 其餘代碼保持不變 ... -->
+    
+    <!-- 地圖模態視窗 -->
+    <div class="modal" id="map-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>冒險地圖</h2>
+                <div class="close-modal" id="close-map-modal">&times;</div>
+            </div>
+            <div class="modal-body">
+                <div class="map-hint centered">點擊關卡可直接選擇</div>
+                <div class="full-map-container">
+                    <div class="full-map-scroll-container" id="full-map-scroll-container">
+                        <div class="full-map-levels">
+                            <div class="full-map-level-item">
+                                <div class="level-node completed">
+                                    <i class="fas fa-tree"></i>
+                                    <span>1</span>
+                                </div>
+                                <div class="level-path"></div>
+                                <div class="level-name">森林入口</div>
+                                <div class="level-description">初始關卡，適合新手挑戰</div>
+                            </div>
+                            <div class="full-map-level-item">
+                                <div class="level-node active">
+                                    <i class="fas fa-mountain"></i>
+                                    <span>2</span>
+                                </div>
+                                <div class="level-path"></div>
+                                <div class="level-name">山脈地帶</div>
+                                <div class="level-description">中級難度，需要更多力量</div>
+                            </div>
+                            <div class="full-map-level-item">
+                                <div class="level-node">
+                                    <i class="fas fa-water"></i>
+                                    <span>3</span>
+                                </div>
+                                <div class="level-path"></div>
+                                <div class="level-name">神秘湖泊</div>
+                                <div class="level-description">需要耐力與平衡</div>
+                            </div>
+                            <div class="full-map-level-item">
+                                <div class="level-node">
+                                    <i class="fas fa-dungeon"></i>
+                                    <span>4</span>
+                                </div>
+                                <div class="level-path"></div>
+                                <div class="level-name">古老洞窟</div>
+                                <div class="level-description">高難度，需要全面技能</div>
+                            </div>
+                            <div class="full-map-level-item">
+                                <div class="level-node">
+                                    <i class="fas fa-dragon"></i>
+                                    <span>5</span>
+                                </div>
+                                <div class="level-name">龍之巢穴</div>
+                                <div class="level-description">最終挑戰，考驗極限</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="full-map-controls">
+                        <button class="map-scroll-btn large" id="full-scroll-left-btn"><i class="fas fa-chevron-left"></i></button>
+                        <button class="map-scroll-btn large" id="full-scroll-right-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
                 </div>
-                <div class="hp-bar-container">
-                    <div class="hp-bar-fill"></div>
-                </div>
-                <!-- 怪物場景容器 -->
-                <div class="monster-container">
-                    <div id="monster-scene-container" class="monster-scene-container"></div>
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="button secondary" id="close-map-btn">關閉</button>
+                <button class="button" id="start-level-btn">開始挑戰</button>
             </div>
         </div>
     </div>
-</div>
-
-<!-- 关卡详情弹窗 -->
-<div class="level-modal" id="level-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="level-title">关卡标题</h2>
-            <span class="close-modal">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="level-image">
-                <img id="level-image" src="" alt="关卡图片">
-            </div>
-            <div class="level-description" id="level-description">
-                关卡描述内容...
-            </div>
-            <div class="level-monsters">
-                <h3>怪物信息</h3>
-                <div class="monster-info">
-                    <div class="monster-count">数量: <span id="monster-count">3</span></div>
-                    <div class="monster-hp">血量: <span id="monster-hp">100</span></div>
-                </div>
-            </div>
-            <div class="level-rewards">
-                <h3>通关奖励</h3>
-                <div id="level-rewards">经验值 +50</div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <!-- 修改按钮，不再跳转页面，而是直接加载关卡 -->
-            <button id="start-level-btn" class="game-btn primary-btn">开始挑战</button>
+    
+    <!-- 成就通知 -->
+    <div class="achievement-notification" id="achievement-notification">
+        <div class="achievement-icon">🏆</div>
+        <div class="achievement-text">
+            <h3 id="notification-title">成就解鎖！</h3>
+            <p id="notification-description">你已完成一項新成就</p>
         </div>
     </div>
-</div>
+    
+    <script src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+    <script>
+        // 頁面載入動畫
+        document.addEventListener('DOMContentLoaded', function() {
+            const pageLoader = document.getElementById('page-loader');
+            const progressBar = document.getElementById('loader-progress-bar');
+            
+            // 模擬載入進度
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                progressBar.style.width = `${progress}%`;
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        pageLoader.classList.add('fade-out');
+                        setTimeout(() => {
+                            pageLoader.style.display = 'none';
+                        }, 500);
+                    }, 500);
+                }
+            }, 100);
+            
+            // 設置地圖模態視窗事件
+            const mapModal = document.getElementById('map-modal');
+            const showMapBtn = document.getElementById('show-map-btn');
+            const closeMapBtn = document.getElementById('close-map-btn');
+            const closeMapModalBtn = document.getElementById('close-map-modal');
+            const startLevelBtn = document.getElementById('start-level-btn');
+            
+            showMapBtn.addEventListener('click', () => {
+                mapModal.classList.add('active');
+            });
+            
+            closeMapBtn.addEventListener('click', () => {
+                mapModal.classList.remove('active');
+            });
+            
+            closeMapModalBtn.addEventListener('click', () => {
+                mapModal.classList.remove('active');
+            });
 
-<!-- 地圖弹窗 -->
-<div class="map-modal" id="map-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>遊戲地圖</h2>
-            <span class="close-modal">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="full-map-container">
-                <div id="full-map-levels" class="full-map-levels"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 成就弹窗 -->
-<div class="achievements-modal" id="achievements-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>我的成就</h2>
-            <span class="close-modal">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div id="achievements-list" class="achievements-list">
-                <!-- 成就列表将由JavaScript动态生成 -->
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 新成就通知 -->
-<div class="achievement-notification" id="achievement-notification">
-    <div class="achievement-icon">🏆</div>
-    <div class="achievement-content">
-        <div class="achievement-title" id="notification-title">新成就解锁!</div>
-        <div class="achievement-description" id="notification-description">成就描述</div>
-    </div>
-</div>
-
-<script src="{{ url_for('static', filename='js/game_map_simple.js') }}"></script>
+            startLevelBtn.addEventListener('click', () => {
+                mapModal.classList.remove('active');
+                // 在此處添加開始挑戰的邏輯
+            });
+        });
+    </script>
 </body>
-</html>

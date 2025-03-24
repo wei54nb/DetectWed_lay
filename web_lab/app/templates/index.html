@@ -3,1385 +3,1597 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NKUST - 訓練影片上傳</title>
+    <title>健身偵簡單 - NKUST</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* =============================
-           1. 全局重置與基本設定
-           ============================= */
+        :root {
+            --primary: #3498db;
+            --secondary: #2ecc71;
+            --accent: #f39c12;
+            --danger: #e74c3c;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --gray: #95a5a6;
+            --white: #ffffff;
+            --black: #000000;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
+            font-family: 'Poppins', Arial, sans-serif;
         }
 
         body {
-            background-color: #f4f4f4;
+            background-color: #f8f9fa;
+            color: var(--dark);
+            line-height: 1.6;
         }
 
-        /* =============================
-           2. 按鈕樣式
-           ============================= */
-        .button {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            color: #fff;
-            text-transform: uppercase;
-            font-size: 1rem;
-            letter-spacing: 0.15rem;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-            z-index: 1;
-            text-align: center;
-            background-color: #00BCD4;
-            text-decoration: none;
-            cursor: pointer;
-            border: none;
-            min-width: 150px;
-        }
-
-        .button:after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #00BCD4;
-            border-radius: 0.5rem;
-            z-index: -2;
-        }
-
-        .button:before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0%;
-            height: 100%;
-            background-color: #0088cc;
-            transition: all 0.3s;
-            border-radius: 0.5rem;
-            z-index: -1;
-        }
-
-        .button:hover {
-            color: #fff;
-        }
-
-        .button:hover:before {
-            width: 100%;
-        }
-
-        /* =============================
-           3. 頂部區塊 (Header)
-           ============================= */
-        .header {
+        /* ===== 頂部導航 ===== */
+        .navbar {
+            background-color: var(--white);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 0.8rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            background-color: #fff;
-            padding: 15px 20px;
-            border-bottom: 2px solid #00BCD4;
-            min-height: auto;
-            gap: 20px;
         }
 
         .logo-container {
             display: flex;
             align-items: center;
-            gap: 30px;
-            flex-shrink: 0;
+            gap: 1rem;
         }
 
         .logo-container img {
-            height: 50px;
+            height: 40px;
         }
 
         .logo-container span {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #000;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
         }
 
-        /* =============================
-           4. 導覽按鈕 (Nav Buttons)
-           ============================= */
-        .nav-buttons {
+        .nav-links {
             display: flex;
+            gap: 1.5rem;
             align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-            flex-grow: 1;
         }
 
-        .nav-buttons a.button {
-            margin: 5px 0;
-        }
-
-        /* =============================
-           5. 選單 (Menu)
-           ============================= */
-        .menu {
+        .nav-link {
+            color: var(--dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
             position: relative;
-            margin-top: 10px;
+            padding: 0.5rem 0;
         }
 
-        .menu > .button {
-            width: 200px;
-            height: 60px;
-        }
-
-        .menu-dropdown {
-            display: none;
+        .nav-link:after {
+            content: '';
             position: absolute;
-            top: 100%;
-            right: 0;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            z-index: 10;
-            width: 200px;
-        }
-
-        .menu-dropdown button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            text-align: left;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-
-        .menu-dropdown button:hover {
-            background-color: #f4f4f4;
-        }
-
-        /* 滑鼠移到 menu 才顯示下拉 */
-        .menu:hover .menu-dropdown {
-            display: block;
-        }
-
-        /* =============================
-           6. 主要內容區 (Content)
-           ============================= */
-        .content {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: calc(100vh - 150px);
-            padding: 20px;
-            position: relative;
-            gap: 20px;
-        }
-
-        /* 灰色資訊盒 */
-        .gray-box {
-            width: 80%;
-            max-width: 600px;
-            background-color: #777;
-            color: #fff;
-            padding: 20px;
-            text-align: center;
-            border-radius: 10px;
-        }
-
-        /* =============================
-           7. 上傳表單 (Upload Form)
-           ============================= */
-        .upload-form {
-            display: none;
-            width: 80%;
-            max-width: 600px;
-            margin-top: 0;
-            text-align: center;
-            position: absolute;
-            top: 20px;
-        }
-
-        .upload-form input[type="file"] {
-            display: block;
-            margin: 10px auto;
-            padding: 8px;
-            font-size: 1rem;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            background-color: #fff;
-            width: 80%;
-        }
-
-        .upload-form button {
-            padding: 12px 24px;
-            background-color: #00BCD4;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: bold;
-            transition: background-color 0.3s;
-            width: 100%;
-            margin-top: 20px;
-        }
-
-        .upload-form button:hover {
-            background-color: #0097a7;
-        }
-
-        .upload-form input[type="file"],
-        .upload-form button {
-            box-sizing: border-box;
-        }
-
-        /* =============================
-           8. 卡片區塊 (Cards)
-           ============================= */
-        .cards {
-            display: flex;
-            justify-content: center;
-            height: 300px;
-            align-items: flex-end;
-            gap: 150px;
-            margin: 40px 20px;
-            background-color: transparent;
-            flex-wrap: nowrap;
-        }
-
-        .card-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px; /* 卡片之間的間距 */
-        }
-
-        .card {
-            max-width: 180px;
-            max-height: 410px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center; /* 改為置中內容 */
-            background-color: transparent;
-            transition: all 0.3s ease;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            margin: 10px;
-        }
-
-        .card a {
-            background-color: transparent;
-        }
-
-        .card img {
-            width: 100%; /* 圖片寬度自適應 */
-            height:  60%;; /* 高度等比例縮放 */
-            object-fit: contain; /* 避免圖片裁切，確保完整顯示 */
-            max-height: 70%; /* 限制圖片不超過卡片高度的 70% */
-            filter: brightness(0.8);
-            transition: filter 0.3s ease;
-        }
-
-        .card span {
-            font-size: 1rem;
-            font-weight: bold;
-            text-align: center;
-            margin-top: 5px; /* 設置文字和圖片之間的距離 */
-        }
-
-        .card:hover img {
-            filter: brightness(1);
-        }
-
-        /* =============================
-           9. 煙火特效 (Fireworks Canvas)
-           ============================= */
-        .fireworks {
-            position: fixed;
-            top: 0;
+            width: 0;
+            height: 2px;
+            bottom: 0;
             left: 0;
-            pointer-events: none;
-            z-index: 9999;
+            background-color: var(--primary);
+            transition: width 0.3s;
         }
 
-        /* =============================
-           10. 媒體查詢 (RWD)
-           ============================= */
+        .nav-link:hover {
+            color: var(--primary);
+        }
 
+        .nav-link:hover:after {
+            width: 100%;
+        }
 
-        /* 手機裝置 (<= 768px) */
-        @media (max-width: 768px) {
-            /* Header 頂部調整 */
-            body {
-                padding: 10px;
-                font-size: 0.9rem; /* 縮小全局字體大小 */
-            }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
 
-            * {
-                box-sizing: border-box;
-            }
-
-            h1, h2, h3, h4, h5, h6 {
-                font-size: 1.2rem; /* 標題字體縮小 */
-                margin-bottom: 10px;
-            }
-            .header {
-                flex-direction: column; /* 改為垂直排列 */
-                padding: 10px; /* 減少額外空間 */
-                text-align: center;
-            }
-
-            .logo-container {
-                gap: 10px; /* 縮小 Logo 與文字之間的距離 */
-                margin-bottom: 10px;
-            }
-
-            .logo-container img {
-                height: 40px;
-            }
-
-            .logo-container span {
-                font-size: 1.5rem;
-            }
-
-            /* Nav 按鈕改為直式排列 */
-            .nav-buttons {
-                flex-direction: row; /* 水平排列按鈕 */
-                flex-wrap: wrap; /* 允許按鈕換行 */
-                gap: 10px; /* 按鈕間距 */
-            }
-
-            .nav-buttons a {
-                min-width: 120px; /* 縮小按鈕寬度 */
-                padding: 10px; /* 縮小按鈕內間距 */
-            }
-
-            .user-info {
-                justify-content: center; /* 使用者資訊也置中排列 */
-            }
-
-            .menu {
-                margin-top: 10px;
-            }
-
-            .content {
-                flex-direction: column; /* 內容區以垂直排列 */
-                padding: 10px; /* 儘量減少內間距 */
-                gap: 20px; /* 各區塊之間的距離 */
-            }
-
-            .gray-box {
-                width: 100%; /* 佔滿螢幕寬度 */
-                text-align: center; /* 保持內容置中 */
-                font-size: 0.9rem; /* 縮小文字 */
-            }
-
-            .upload-form {
-                width: 100%; /* 表單也佔滿可用寬度 */
-            }
-
-            .upload-form input[type="file"] {
-                width: 100%; /* 上傳按鈕佔滿整行 */
-                font-size: 0.85rem; /* 縮小字體 */
-            }
-
-            .upload-form button {
-                padding: 10px; /* 按鈕內邊距縮小 */
-                font-size: 1rem; /* 字型稍微縮小 */
-                width: 100%; /* 按鈕寬度佔滿 */
-            }
-
-            .cards {
-                display: flex;
-                flex-direction: row; /* 卡片改為橫向排列 */
-                overflow-x: auto; /* 滾動顯示 */
-                gap: 15px; /* 卡片间距 */
-                padding: 10px 0; /* 上下保留空間 */
-                scroll-snap-type: x mandatory; /* 滾動吸附效果 */
-            }
-
-            .card {
-                flex: 0 0 150px; /* 每張卡片固定寬度 */
-                height: 200px; /* 固定高度 */
-                display: flex;
-                flex-direction: column;
-                justify-content: flex-start;
-                align-items: center;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                scroll-snap-align: center; /* 滾動置中 */
-            }
-
-            .card img {
-                width: 100%;
-                height: 60%; /* 圖片佔比例 */
-                object-fit: cover;
-            }
-
-            .card span {
-                font-size: 0.85rem; /* 縮小字體 */
-                text-align: center;
-                padding: 5px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis; /* 文字截斷 */
-            }
-
-            .stats-cards {
-                flex-direction: column; /* 讓統計卡片垂直排列 */
-                gap: 15px; /* 增加區塊間距 */
-            }
-
-            .stat-card {
-                flex: 0 0 100%; /* 卡片寬度改為全寬 */
-                padding: 10px; /* 減小內間距 */
-                text-align: center; /* 保持文字居中 */
-            }
-
-            .stat-card-title {
-                font-size: 1rem; /* 標題文字調整 */
-            }
-
-            .stat-card-value {
-                font-size: 1.5rem; /* 數值稍微縮小 */
-            }
-
-            .charts-wrapper {
-                flex-direction: column; /* 圖表改為縱向排列 */
-                gap: 20px; /* 圖表之間留白 */
-            }
-
-            .chart-container {
-                width: 100%; /* 調整寬度 */
-                height: 256px; /* 高度縮小 */
-            }
-
-            .button {
-                padding: 10px 20px; /* 緊湊按鈕大小 */
-                font-size: 0.9rem; /* 字體稍作縮小 */
-                min-width: 100px; /* 縮小按鈕寬度 */
-            }
-
-            .time-filters {
-                flex-wrap: wrap; /* 允許時間過濾按鈕換行 */
-                gap: 10px; /* 按鈕間距 */
-            }
-
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-weight: 600;
         }
 
         .user-info {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+        }
+
+        .username {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-level {
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        /* ===== 英雄區塊 ===== */
+        .hero {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--white);
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-cta {
+            background-color: var(--white);
+            color: var(--primary);
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-block;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background-image: url('/static/img/fitness-pattern.png');
+            background-size: cover;
+        }
+
+        /* ===== 進度區塊 ===== */
+        .progress-section {
+            padding: 3rem 2rem;
+            background-color: var(--white);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .section-title h2 {
+            font-size: 2rem;
+            display: inline-block;
+        }
+
+        .section-title h2:after {
+            content: '';
+            display: block;
+            width: 50px;
+            height: 3px;
+            background-color: var(--primary);
+            margin: 0.5rem auto 0;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: center;
             flex-wrap: wrap;
-            justify-content: flex-end;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background-color: var(--light);
+            border-radius: 10px;
+            padding: 1.5rem;
             min-width: 200px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
         }
 
-        .user-info span {
-            font-size: 1rem;
-            color: #000;
-            font-weight: bold;
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
         }
 
-
-        @media (max-width: 1200px) {
-            .nav-buttons {
-                gap: 15px;
-            }
-
-            .button {
-                padding: 0.6rem 1.2rem;
-                min-width: 120px;
-                font-size: 0.9rem;
-            }
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
         }
 
-        @media (max-width: 992px) {
-            .header {
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .stat-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            justify-content: center;
+        }
+
+        .chart-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+            height: 300px; /* 添加固定高度 */
+            position: relative; /* 添加相对定位 */
+            overflow: hidden; /* 防止内容溢出 */
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 250px !important; /* 设置画布固定高度 */
+        }
+
+        /* ===== 挑戰區塊 ===== */
+        .challenges-section {
+            padding: 3rem 2rem;
+            background-color: var(--light);
+        }
+
+        .challenges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .challenge-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .challenge-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .challenge-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+        }
+
+        .challenge-content {
+            padding: 1.5rem;
+        }
+
+        .challenge-title {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .challenge-desc {
+            color: var(--gray);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .challenge-progress {
+            height: 8px;
+            background-color: var(--light);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary);
+            border-radius: 4px;
+        }
+
+        .challenge-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        /* ===== 成就區塊 ===== */
+        .achievements-section {
+            padding: 3rem 2rem;
+            background-color: var(--white);
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .achievement-card {
+            background-color: var(--light);
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .achievement-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .achievement-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background-color: var(--white);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--primary);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .achievement-locked .achievement-icon {
+            color: var(--gray);
+            background-color: #f1f1f1;
+        }
+
+        .achievement-title {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .achievement-desc {
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        .achievement-locked {
+            opacity: 0.7;
+        }
+
+        /* ===== 底部區塊 ===== */
+        .footer {
+            background-color: var(--dark);
+            color: var(--light);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-link {
+            color: var(--light);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-link:hover {
+            color: var(--primary);
+        }
+
+        .footer-text {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        /* ===== 響應式設計 ===== */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0.8rem 1rem;
                 flex-direction: column;
-                padding: 10px;
+                gap: 1rem;
             }
 
-            .logo-container {
+            .nav-links {
                 width: 100%;
                 justify-content: center;
-                margin-bottom: 10px;
+                flex-wrap: wrap;
             }
 
-            .nav-buttons {
-                width: 100%;
-                justify-content: center;
-                gap: 10px;
+            .hero h1 {
+                font-size: 2rem;
             }
 
-            .user-info {
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .stats-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .stat-card {
                 width: 100%;
-                justify-content: center;
-                margin-top: 10px;
+                max-width: 300px;
+            }
+
+            .challenges-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .achievements-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        .dashboard-container {
-            padding: 20px;
-            font-family: Arial, sans-serif;
+        /* ===== 動畫效果 ===== */
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
         }
 
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* ===== 遊戲化元素 ===== */
+        .level-badge {
+            background-color: var(--accent);
+            color: var(--white);
+            padding: 0.3rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .xp-bar {
+            height: 6px;
+            background-color: var(--light);
+            border-radius: 3px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
+
+        .xp-progress {
+            height: 100%;
+            background-color: var(--accent);
+            border-radius: 3px;
+        }
+
+        .xp-text {
+            font-size: 0.8rem;
+            color: var(--gray);
+            text-align: right;
+        }
+
+        /* ===== 時間過濾器 ===== */
         .time-filters {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
 
         .time-button {
-            padding: 8px 16px;
+            background-color: var(--light);
             border: none;
-            border-radius: 4px;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 500;
             cursor: pointer;
-            background-color: #e2e8f0;
             transition: all 0.3s;
         }
 
         .time-button.active {
-            background-color: #3b82f6;
-            color: white;
+            background-color: var(--primary);
+            color: var(--white);
         }
 
-        .stats-cards {
-            display: flex;
-            justify-content: center; /* 讓卡片置中 */
-            flex-wrap: wrap; /* 讓卡片換行 */
-            gap: 20px;
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 800px; /* 限制最大寬度，讓它們不會太散 */
+        .time-button:hover:not(.active) {
+            background-color: #e0e0e0;
         }
 
-        .stat-card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        /* ===== 遊戲化元素 - 冒險地圖修正 ===== */
+        .workout-map {
+            position: relative;
+            margin: 4rem auto;
+            max-width: 800px;
+            padding: 0 1rem;
         }
 
-        .stat-card-title {
-            font-size: 1rem;
-            color: #4b5563;
-            margin-bottom: 10px;
+        .map-path {
+            height: 8px;
+            background-color: var(--light);
+            border-radius: 5px;
+            position: relative;
+            margin: 3rem 0;
+        }
+
+        .map-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 5px;
+            width: 65%; /* 示例進度 */
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .map-node {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--white);
+            border: 3px solid var(--light);
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
             display: flex;
             align-items: center;
-            gap: 8px;
-        }
-
-        .stat-card-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #1f2937;
-        }
-
-        .chart-container {
-            background: white;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            width: 45%; /* 讓圖表更小，使它們靠近 */
-            max-width: 500px;
-            height: 300px;
-        }
-
-        .chart-title {
-            font-size: 1rem;
-            color: #1f2937;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        #progress-chart, #activity-chart {
-            width: auto;
-            height: 260px !important;
-        }
-
-        .charts-wrapper {
-            display: flex;
-            justify-content: center; /* 讓圖表靠近並置中 */
-            align-items: flex-start;
-            flex-wrap: wrap;
-            gap: 70px;
-            width: 100%;
-            max-width: 850px; /* 限制最大寬度，讓圖表不會太分散 */
-            margin: 0 auto; /* 讓整個區塊置中 */
-            flex-direction: row;
             justify-content: center;
-            flex-wrap: nowrap;
-
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray);
+            transition: all 0.3s;
+            z-index: 2;
+            cursor: pointer;
         }
+
+        .map-node.completed {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+            color: var(--white);
+        }
+
+        .map-node.current {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: var(--white);
+            box-shadow: 0 0 0 5px rgba(52, 152, 219, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        .map-node:nth-child(2) { left: 0%; }
+        .map-node:nth-child(3) { left: 25%; }
+        .map-node:nth-child(4) { left: 50%; }
+        .map-node:nth-child(5) { left: 75%; }
+        .map-node:nth-child(6) { left: 100%; }
+
+        .map-label {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: var(--dark);
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+
+                /* 關卡信息彈窗 */
+                .level-info {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%) scale(0);
+            background-color: var(--white);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 220px;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .map-node:hover .level-info {
+            transform: translateX(-50%) scale(1);
+            opacity: 1;
+        }
+
+        .level-info h4 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .level-info p {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-bottom: 0.5rem;
+        }
+
+        .level-info .level-progress {
+            height: 6px;
+            background-color: var(--light);
+            border-radius: 3px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
+
+        .level-info .level-progress-bar {
+            height: 100%;
+            background-color: var(--primary);
+            border-radius: 3px;
+        }
+
+        .level-info .level-reward {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        /* 脈衝動畫 */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.5);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(52, 152, 219, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+            }
+        }
+
+        /* ===== 運動卡片 ===== */
+        .workout-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .workout-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .workout-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .workout-img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+        }
+
+        .workout-content {
+            padding: 1.5rem;
+        }
+
+        .workout-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .workout-desc {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .workout-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .workout-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-number {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .stat-text {
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        .workout-button {
+            background-color: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 0.8rem 0;
+            border-radius: 5px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+
+        .workout-button:hover {
+            background-color: #2980b9;
+        }
+
+        /* ===== 動畫效果 ===== */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ===== 遊戲化通知 ===== */
+        .game-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--white);
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: transform 0.5s;
+        }
+
+        .game-notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(52, 152, 219, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .notification-message {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .close-notification {
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
 
 
 
     </style>
 </head>
 <body>
-    <div class="header">
+    <!-- 頂部導航 -->
+    <nav class="navbar">
         <div class="logo-container">
             <img src="{{ url_for('static', filename='img/nkust.png') }}" alt="NKUST Logo">
-            <span>國立高雄科技大學</span>
+            <span>高雄科技大學</span>
         </div>
-
-
-
-        <div class="nav-buttons">
-            <a href="{{ url_for('main.index') }}" class="button">
-                回首頁
-            </a>
-            <a href="{{ url_for('exercise.realtime') }}" class="button">
-                即時偵測
-            </a>
-
-            <a href="{{ url_for('main.Equipment_Introduction') }}" class="button">
-                器材介紹
-            </a>
-
-            <a href="{{ url_for('main.Exercise_Knowledge') }}" class="button">
-                動作知識
-            </a>
-
-            <a href="{{ url_for('main.classroom') }}" class="button">
-                課程課堂回應
-            </a>
+        
+        <div class="nav-links">
+            <a href="{{ url_for('main.index') }}" class="nav-link">首頁</a>
+            <a href="{{ url_for('exercise.realtime') }}" class="nav-link">即時偵測</a>
+            <a href="{{ url_for('main.Equipment_Introduction') }}" class="nav-link">器材介紹</a>
+            <a href="{{ url_for('main.Exercise_Knowledge') }}" class="nav-link">動作知識</a>
+            <a href="{{ url_for('main.classroom') }}" class="nav-link">課程回應</a>
+        </div>
+        
+        <div class="user-profile">
+            {% if current_user.is_authenticated %}
+            <div class="avatar">{{ current_user.username[0] }}</div>
             <div class="user-info">
-                {% if current_user.is_authenticated %}
-                <span>歡迎, {{ current_user.username }} ({{ current_user.role }})</span>
-                <a href="{{ url_for('auth.logout') }}" class="button">登出</a>
-                {% else %}
-                <a href="{{ url_for('main.login') }}" class="button">登入</a>
-                {% endif %}
+                <span class="username">{{ current_user.username }}</span>
+                <span class="user-level">Level 5 健身勇士</span>
             </div>
-
+            <a href="{{ url_for('auth.logout') }}" class="nav-link">登出</a>
+            {% else %}
+            <a href="{{ url_for('main.login') }}" class="nav-link">登入</a>
+            {% endif %}
         </div>
-        <!-- 顯示當前登入者資訊
-        <div class="menu">
-            <button class="button">選擇訓練類型</button>
-            <div class="menu-dropdown">
-                <button onclick="showUploadForm('squat')">深蹲訓練</button>
-                <button onclick="showUploadForm('bicep-curl')">二頭訓練</button>
-                <button onclick="showUploadForm('shoulder-press')">肩推訓練</button>
-                <button onclick="showUploadForm('push-up')">伏地挺身</button>
-                <button onclick="showUploadForm('pull-up')">引體向上</button>
-            </div>
-        </div>-->
-    </div>
+    </nav>
 
-    <div class="content">
-        <div id="gray-box" class="gray-box">
-            操作教學 / 或是其他展示
+    <!-- 英雄區塊 -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <h1>開始你的健身冒險</h1>
+        <p>透過完成運動挑戰，提升你的健身等級，解鎖更多成就與獎勵！</p>
+        <a href="{{ url_for('exercise.realtime') }}" class="hero-cta">立即開始訓練</a>
+    </section>
+
+    <!-- 進度區塊 -->
+    <section class="progress-section">
+        <div class="section-title">
+            <h2>你的健身進度</h2>
         </div>
-        <div id="upload-form" class="upload-form">
-            <form action="/upload" method="post" enctype="multipart/form-data">
-                <input type="hidden" id="exercise-type" name="exercise">
-                <input type="file" name="file" accept="video/*" required onchange="previewVideo(event)">
-
-                <!-- Display video thumbnail -->
-                <div id="video-thumbnail" style="display:none;">
-                    <img id="thumbnail" src="" alt="Video Thumbnail"
-                         style="width: 200px; height: auto; margin-top: 15px; border-radius: 10px;">
-                </div>
-
-                <button type="submit">上傳影片</button>
-            </form>
-        </div>
-
+        
         <div class="time-filters">
-            <button class="time-button" data-period="day">Day</button>
-            <button class="time-button active" data-period="week">Week</button>
-            <button class="time-button" data-period="month">Month</button>
+            <button class="time-button" data-period="day">今日</button>
+            <button class="time-button active" data-period="week">本週</button>
+            <button class="time-button" data-period="month">本月</button>
         </div>
-
-        <div class="stats-cards">
+        
+        <div class="stats-container">
             <div class="stat-card">
-                <div class="stat-card-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                    </svg>
-                    總消耗熱量
-                </div>
-                <div class="stat-card-value" id="total-calories">0 kcal</div>
+                <div class="stat-icon">🔥</div>
+                <div class="stat-value" id="total-calories">0</div>
+                <div class="stat-label">總消耗熱量 (kcal)</div>
             </div>
-
+            
             <div class="stat-card">
-                <div class="stat-card-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M6 6h12v12H6z"/>
-                    </svg>
-                    總組數
-                </div>
-                <div class="stat-card-value" id="total-sets">0</div>
+                <div class="stat-icon">🏋️</div>
+                <div class="stat-value" id="total-sets">0</div>
+                <div class="stat-label">總組數</div>
             </div>
-
+            
             <div class="stat-card">
-                <div class="stat-card-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/>
-                        <line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                    運動天數
-                </div>
-                <div class="stat-card-value" id="active-days">0</div>
+                <div class="stat-icon">📅</div>
+                <div class="stat-value" id="active-days">0</div>
+                <div class="stat-label">運動天數</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-value">65%</div>
+                <div class="stat-label">目標完成率</div>
             </div>
         </div>
-        <div class="charts-wrapper">
-            <div class="chart-container">
+        
+        <div class="charts-container">
+            <div class="chart-card">
                 <div class="chart-title">運動進度</div>
                 <canvas id="progress-chart"></canvas>
             </div>
-
-            <div class="chart-container">
-                <div class="chart-title"> 每日活動分析</div>
+            
+            <div class="chart-card">
+                <div class="chart-title">每日活動分析</div>
                 <canvas id="activity-chart"></canvas>
             </div>
         </div>
+    </section>
 
-    </div>
-
-        <div class="cards">
-            <a href="/page1" class="card">
-                <img src="{{ url_for('static', filename='img/equipment.png') }}" alt="Page 1">
-                <span>建議使用配置</span>
-            </a>
-            <a href="/page2" class="card">
-                <img src="{{ url_for('static', filename='img/tecni.png') }}" alt="Page 2">
-                <span>使用技術</span>
-            </a>
-            <a href="/page3" class="card">
-                <img src="{{ url_for('static', filename='img/more.png') }}" alt="Page 3">
-                <span>更多功能</span>
-            </a>
+    <!-- 冒險地圖 -->
+    <section class="challenges-section">
+        <div class="section-title">
+            <h2>健身冒險地圖</h2>
         </div>
+        
+        <div class="workout-map">
+            <div class="map-path">
+                <div class="map-progress"></div>
+                <div class="map-node completed">
+                    1
+                    <div class="level-info">
+                        <h4>初級訓練</h4>
+                        <p>完成10次標準深蹲</p>
+                        <div class="level-progress">
+                            <div class="level-progress-bar" style="width: 100%"></div>
+                        </div>
+                        <div class="level-reward">🏆 獎勵: 20 XP</div>
+                    </div>
+                </div>
+                <div class="map-node completed">
+                    2
+                    <div class="level-info">
+                        <h4>肌力提升</h4>
+                        <p>完成15次伏地挺身</p>
+                        <div class="level-progress">
+                            <div class="level-progress-bar" style="width: 100%"></div>
+                        </div>
+                        <div class="level-reward">🏆 獎勵: 30 XP</div>
+                    </div>
+                </div>
+                <div class="map-node current">
+                    3
+                    <div class="level-info">
+                        <h4>核心挑戰</h4>
+                        <p>完成20次二頭彎舉</p>
+                        <div class="level-progress">
+                            <div class="level-progress-bar" style="width: 65%"></div>
+                        </div>
+                        <div class="level-reward">🏆 獎勵: 40 XP</div>
+                    </div>
+                </div>
+                <div class="map-node">
+                    4
+                    <div class="level-info">
+                        <h4>進階訓練</h4>
+                        <p>完成25次肩推訓練</p>
+                        <div class="level-progress">
+                            <div class="level-progress-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="level-reward">🏆 獎勵: 50 XP</div>
+                    </div>
+                </div>
+                <div class="map-node">
+                    5
+                    <div class="level-info">
+                        <h4>大師級挑戰</h4>
+                        <p>完成一組複合式訓練</p>
+                        <div class="level-progress">
+                            <div class="level-progress-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="level-reward">🏆 獎勵: 100 XP</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="challenges-grid">
+            <div class="challenge-card">
+                <img src="{{ url_for('static', filename='img/squat.jpg') }}" alt="深蹲挑戰" class="challenge-img">
+                <div class="challenge-content">
+                    <h3 class="challenge-title">深蹲挑戰</h3>
+                    <p class="challenge-desc">完成30次標準深蹲，提升下肢力量</p>
+                    <div class="challenge-progress">
+                        <div class="progress-bar" style="width: 75%"></div>
+                    </div>
+                    <div class="challenge-stats">
+                        <span>已完成: 75%</span>
+                        <span>獎勵: 50 XP</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="challenge-card">
+                <img src="{{ url_for('static', filename='img/bicep.jpg') }}" alt="二頭彎舉挑戰" class="challenge-img">
+                <div class="challenge-content">
+                    <h3 class="challenge-title">二頭彎舉挑戰</h3>
+                    <p class="challenge-desc">使用啞鈴完成20次二頭彎舉</p>
+                    <div class="challenge-progress">
+                        <div class="progress-bar" style="width: 40%"></div>
+                    </div>
+                    <div class="challenge-stats">
+                        <span>已完成: 40%</span>
+                        <span>獎勵: 30 XP</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="challenge-card">
+                <img src="{{ url_for('static', filename='img/pushup.jpg') }}" alt="伏地挺身挑戰" class="challenge-img">
+                <div class="challenge-content">
+                    <h3 class="challenge-title">伏地挺身挑戰</h3>
+                    <p class="challenge-desc">連續完成15次標準伏地挺身</p>
+                    <div class="challenge-progress">
+                        <div class="progress-bar" style="width: 100%"></div>
+                    </div>
+                    <div class="challenge-stats">
+                        <span>已完成: 100%</span>
+                        <span>獎勵: 40 XP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
+    <!-- 推薦訓練 -->
+    <section class="progress-section">
+        <div class="section-title">
+            <h2>推薦訓練</h2>
+        </div>
+        
+        <div class="workout-cards">
+            <div class="workout-card">
+                <img src="{{ url_for('static', filename='img/squat.jpg') }}" alt="深蹲訓練" class="workout-img">
+                <div class="workout-content">
+                    <h3 class="workout-title">深蹲訓練</h3>
+                    <p class="workout-desc">鍛鍊下肢力量，提升核心穩定性</p>
+                    <div class="workout-stats">
+                        <div class="workout-stat">
+                            <span class="stat-number">30</span>
+                            <span class="stat-text">次數</span>
+                        </div>
+                        <div class="workout-stat">
+                            <span class="stat-number">3</span>
+                            <span class="stat-text">組數</span>
+                        </div>
+                        <div class="workout-stat">
+                            <span class="stat-number">45</span>
+                            <span class="stat-text">熱量</span>
+                        </div>
+                    </div>
+                    <button class="workout-button">開始訓練</button>
+                </div>
+            </div>
+            
+            <div class="workout-card">
+                <img src="{{ url_for('static', filename='img/bicep.jpg') }}" alt="二頭彎舉訓練" class="workout-img">
+                <div class="workout-content">
+                    <h3 class="workout-title">二頭彎舉訓練</h3>
+                    <p class="workout-desc">增強手臂力量，塑造完美二頭肌</p>
+                    <div class="workout-stats">
+                        <div class="workout-stat">
+                            <span class="stat-number">15</span>
+                            <span class="stat-text">次數</span>
+                        </div>
+                        <div class="workout-stat">
+                            <span class="stat-number">4</span>
+                            <span class="stat-text">組數</span>
+                        </div>
+                        <div class="workout-stat">
+                            <span class="stat-number">30</span>
+                            <span class="stat-text">熱量</span>
+                        </div>
+                    </div>
+                    <button class="workout-button">開始訓練</button>
+                </div>
+            </div>
+            
+            <div class="workout-card">
+                <img src="{{ url_for('static', filename='img/shoulder.jpg') }}" alt="肩推訓練" class="workout-img">
+                <div class="workout-content">
+                    <h3 class="workout-title">肩推訓練</h3>
+                    <p class="workout-desc">強化肩部肌群，提升上肢穩定性</p>
+                    <div class="workout-stats">
+                        <div class="workout-stat">
+                            <span class="stat-number">12</span>
+                            <span class="stat-text">次數</span>
+                        </div>
+                        <div class="workout-stat">
+                            <span class="stat-number">3</span>
+                            <span class="stat-text">組數</span>
+                        </div>
+                        <div class="workout-stat">
+                            <span class="stat-number">35</span>
+                            <span class="stat-text">熱量</span>
+                        </div>
+                    </div>
+                    <button class="workout-button">開始訓練</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 成就區塊 -->
+    <section class="achievements-section">
+        <div class="section-title">
+            <h2>你的成就</h2>
+        </div>
+        
+        <div class="achievements-grid">
+            <div class="achievement-card">
+                <div class="achievement-icon">🏆</div>
+                <h3 class="achievement-title">初級健身者</h3>
+                <p class="achievement-desc">完成首次訓練</p>
+            </div>
+            
+            <div class="achievement-card">
+                <div class="achievement-icon">🔥</div>
+                <h3 class="achievement-title">連續訓練</h3>
+                <p class="achievement-desc">連續3天訓練</p>
+            </div>
+            
+            <div class="achievement-card">
+                <div class="achievement-icon">💪</div>
+                <h3 class="achievement-title">力量之王</h3>
+                <p class="achievement-desc">完成100次深蹲</p>
+            </div>
+            
+            <div class="achievement-card achievement-locked">
+                <div class="achievement-icon">🏋️</div>
+                <h3 class="achievement-title">健身達人</h3>
+                <p class="achievement-desc">完成所有基礎訓練</p>
+            </div>
+            
+            <div class="achievement-card achievement-locked">
+                <div class="achievement-icon">⚡</div>
+                <h3 class="achievement-title">速度之星</h3>
+                <p class="achievement-desc">10分鐘內完成訓練</p>
+            </div>
+            
+            <div class="achievement-card achievement-locked">
+                <div class="achievement-icon">🌟</div>
+                <h3 class="achievement-title">完美姿勢</h3>
+                <p class="achievement-desc">獲得5次完美評分</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 底部區塊 -->
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="#" class="footer-link">關於我們</a>
+            <a href="#" class="footer-link">使用說明</a>
+            <a href="#" class="footer-link">隱私政策</a>
+            <a href="#" class="footer-link">聯絡我們</a>
+        </div>
+        <p class="footer-text">© 2023 國立高雄科技大學 - 健身冒險. 版權所有.</p>
+    </footer>
+
+    <!-- 遊戲化通知 -->
+    <div class="game-notification" id="game-notification">
+        <div class="notification-icon">🎉</div>
+        <div class="notification-content">
+            <h4 class="notification-title">恭喜！</h4>
+            <p class="notification-message">你獲得了新的成就：連續訓練3天！</p>
+        </div>
+        <button class="close-notification" onclick="closeNotification()">×</button>
     </div>
 
-    <canvas class="fireworks"></canvas>
-
-    <script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-2c7831bb44f98c1391d6a4ffda0e1fd302503391ca806e7fcc7b9b87197aec26.js"></script>
-    <script src="https://codepen.io/juliangarnier/pen/yMLaRG.js"></script>
+    <!-- 引入 Chart.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
-    <script>
-        window.human = false;
+    
+<script>
+    // 當前用戶
+    const currentUser = "{{ current_user.username }}";
+    const currentUserId = "{{ current_user.id }}";
+    
+  
+    
+    // 每種運動的卡路里消耗
+    const CALORIES_PER_REP = {
+        'squat': 0.5,
+        'bicep-curl': 0.3,
+        'shoulder-press': 0.4,
+        'push-up': 0.3,
+        'pull-up': 0.5,
+        'dumbbell-row': 0.4
+    };
+    
+    
+    // 全局變量
+    let progressChart = null;
+    let activityChart = null;
+    let currentPeriod = 'week'; // 默認顯示一週的數據
+    
 
-        var canvasEl = document.querySelector('.fireworks');
-        var ctx = canvasEl.getContext('2d');
-        var numberOfParticules = 30;
-        var pointerX = 0;
-        var pointerY = 0;
-        var tap = 'ontouchstart' in window || navigator.msMaxTouchPoints ? 'touchstart' : 'mousedown';
-        var colors = ['#FF1461', '#18FF92', '#5A87FF', '#FBF38C'];
-
-        function setCanvasSize() {
-            canvasEl.width = window.innerWidth * 2;
-            canvasEl.height = window.innerHeight * 2;
-            canvasEl.style.width = window.innerWidth + 'px';
-            canvasEl.style.height = window.innerHeight + 'px';
-            canvasEl.getContext('2d').scale(2, 2);
+    // 初始化圖表
+    function initCharts() {
+        // 如果图表已存在，先销毁它们
+        if (progressChart) {
+            progressChart.destroy();
         }
-
-        fetch('/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+        if (activityChart) {
+            activityChart.destroy();
+        }
+        
+        const progressCtx = document.getElementById('progress-chart').getContext('2d');
+        const activityCtx = document.getElementById('activity-chart').getContext('2d');
+        
+        progressChart = new Chart(progressCtx, {
+            type: 'line',
+            data: {
+                labels: ['載入中...'],
+                datasets: [
+                    {
+                        label: '運動次數',
+                        data: [0],
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: '消耗熱量',
+                        data: [0],
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
             },
-            body: JSON.stringify({
-                username: currentUser,  // ✅ 這裡使用 `currentUser`
-                password: "your_password"  // 這裡需要替換成真實的密碼輸入值
-            })
-        })
-
-                .then(response => response.json())
-        .then(data => {
-            // 處理回應
-        });
-
-        function updateCoords(e) {
-            pointerX = e.clientX || e.touches[0].clientX;
-            pointerY = e.clientY || e.touches[0].clientY;
-        }
-
-        function setParticuleDirection(p) {
-            var angle = anime.random(0, 360) * Math.PI / 180;
-            var value = anime.random(50, 180);
-            var radius = [-1, 1][anime.random(0, 1)] * value;
-            return {
-                x: p.x + radius * Math.cos(angle),
-                y: p.y + radius * Math.sin(angle)
-            };
-        }
-
-        function createParticule(x, y) {
-            var p = {};
-            p.x = x;
-            p.y = y;
-            p.color = colors[anime.random(0, colors.length - 1)];
-            p.radius = anime.random(16, 32);
-            p.endPos = setParticuleDirection(p);
-            p.draw = function () {
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI, true);
-                ctx.fillStyle = p.color;
-                ctx.fill();
-            };
-            return p;
-        }
-
-        function createCircle(x, y) {
-            var p = {};
-            p.x = x;
-            p.y = y;
-            p.color = '#FFF';
-            p.radius = 0.1;
-            p.alpha = .5;
-            p.lineWidth = 6;
-            p.draw = function () {
-                ctx.globalAlpha = p.alpha;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI, true);
-                ctx.lineWidth = p.lineWidth;
-                ctx.strokeStyle = p.color;
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-            };
-            return p;
-        }
-
-        function renderParticule(anim) {
-            for (var i = 0; i < anim.animatables.length; i++) {
-                anim.animatables[i].target.draw();
-            }
-        }
-
-        function animateParticules(x, y) {
-            var circle = createCircle(x, y);
-            var particules = [];
-            for (var i = 0; i < numberOfParticules; i++) {
-                particules.push(createParticule(x, y));
-            }
-            anime.timeline().add({
-                targets: particules,
-                x: function (p) {
-                    return p.endPos.x;
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
                 },
-                y: function (p) {
-                    return p.endPos.y;
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
                 },
-                radius: 0.1,
-                duration: anime.random(1200, 1800),
-                easing: 'easeOutExpo',
-                update: renderParticule
-            })
-                    .add({
-                        targets: circle,
-                        radius: anime.random(80, 160),
-                        lineWidth: 0,
-                        alpha: {
-                            value: 0,
-                            easing: 'linear',
-                            duration: anime.random(600, 800)
-                        },
-                        duration: anime.random(1200, 1800),
-                        easing: 'easeOutExpo',
-                        update: renderParticule,
-                        offset: 0
-                    });
-        }
-
-        var render = anime({
-            duration: Infinity,
-            update: function () {
-                ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
             }
         });
 
-        document.addEventListener(tap, function (e) {
-            window.human = true;
-            render.play();
-            updateCoords(e);
-            animateParticules(pointerX, pointerY);
-        }, false);
-
-        var centerX = window.innerWidth / 2;
-        var centerY = window.innerHeight / 2;
-
-        function autoClick() {
-            if (window.human) return;
-            animateParticules(
-                    anime.random(centerX - 50, centerX + 50),
-                    anime.random(centerY - 50, centerY + 50));
-
-            anime({duration: 200}).finished.then(autoClick);
-        }
-
-        setCanvasSize();
-        window.addEventListener('resize', setCanvasSize, false);
-
-        function showUploadForm(exerciseType) {
-            const grayBox = document.getElementById('gray-box');
-            const uploadForm = document.getElementById('upload-form');
-            const exerciseInput = document.getElementById('exercise-type');
-
-            // 隱藏 gray-box 並顯示 upload-form
-            grayBox.style.display = 'none';
-            uploadForm.style.display = 'block';
-
-            // 設定運動類型
-            exerciseInput.value = exerciseType;
-        }
-
-        function previewVideo(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const videoElement = document.createElement('video');
-                const reader = new FileReader();
-
-                reader.onload = function (e) {
-                    videoElement.src = e.target.result;
-                    videoElement.onloadeddata = function () {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-
-                        // Take a snapshot of the first frame of the video
-                        videoElement.currentTime = 1; // Skip the first second to avoid blank frame
-                        videoElement.onseeked = function () {
-                            canvas.width = videoElement.videoWidth;
-                            canvas.height = videoElement.videoHeight;
-                            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-                            // Convert the canvas to a data URL (image)
-                            const thumbnailDataUrl = canvas.toDataURL('image/jpeg');
-                            document.getElementById('thumbnail').src = thumbnailDataUrl;
-                            document.getElementById('video-thumbnail').style.display = 'block'; // Show the thumbnail
-                        };
-                    };
-                };
-
-                reader.readAsDataURL(file);
-            }
-        }
-
-//---------------------------------------------統計圖表
-
-        var currentUser = "{{ current_user.username }}";  // 從 Flask 後端獲取當前登入的學號
-        console.log("🔍 當前登入使用者:", currentUser);  // 檢查是否正確傳遞
-
-        const CALORIES_PER_REP = {
-            'squat': 0.5,
-            'bicep-curl': 0.3,
-            'shoulder-press': 0.4,
-            'push-up': 0.3,
-            'pull-up': 0.5,
-            'dumbbell-row': 0.4
-        };
-
-        // 全局变量
-        let progressChart = null;
-        let activityChart = null;
-        let currentPeriod = 'week'; // 默认显示一周的数据
-        let chartsInitialized = false; // 添加标志变量
-
-       
-        // 初始化圖表
-        function initCharts() {
-            // 如果图表已经初始化，先销毁它们
-            if (progressChart) {
-                progressChart.destroy();
-                progressChart = null;
-            }
-            
-            if (activityChart) {
-                activityChart.destroy();
-                activityChart = null;
-            }
-            
-            const progressCtx = document.getElementById('progress-chart').getContext('2d');
-            const activityCtx = document.getElementById('activity-chart').getContext('2d');
-            
-            // 设置图表高度
-            document.getElementById('progress-chart').style.height = "260px";
-            document.getElementById('activity-chart').style.height = "260px";
-
-            progressChart = new Chart(progressCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: '運動次數',
-                            data: [],
-                            borderColor: '#8884d8',
-                            tension: 0.1
-                        },
-                        {
-                            label: '消耗熱量',
-                            data: [],
-                            borderColor: '#82ca9d',
-                            tension: 0.1
-                        }
-                    ]
+        activityChart = new Chart(activityCtx, {
+            type: 'bar',
+            data: {
+                labels: ['載入中...'],
+                datasets: [
+                    {
+                        label: '組數',
+                        data: [0],
+                        backgroundColor: 'rgba(52, 152, 219, 0.7)'
+                    },
+                    {
+                        label: '次數',
+                        data: [0],
+                        backgroundColor: 'rgba(46, 204, 113, 0.7)'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
+                scales: {
+                    y: {
+                        beginAtZero: true
                     }
                 }
-            });
-
-            activityChart = new Chart(activityCtx, {
-                type: 'bar',
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: '組數',
-                            data: [],
-                            backgroundColor: '#8884d8'
-                        },
-                        {
-                            label: '次數',
-                            data: [],
-                            backgroundColor: '#82ca9d'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-            
-            chartsInitialized = true;
-        }
-
+            }
+        });
+    }
+        
         // 更新統計數據
         function updateStats(data) {
-            // 添加防御性检查
-            if (!data || !Array.isArray(data)) {
-                console.error("updateStats 接收到无效数据:", data);
-                return; // 直接返回，不更新任何内容
-            }
-
-            const totalCalories = data.reduce((sum, day) => sum + day.calories, 0);
-            const totalSets = data.reduce((sum, day) => sum + day.totalSets, 0);
-            const activeDays = data.length;
-
-            document.getElementById('total-calories').textContent = `${Math.round(totalCalories)} kcal`;
-            document.getElementById('total-sets').textContent = totalSets;
-            document.getElementById('active-days').textContent = activeDays;
-
-            // 更新圖表
-            const labels = data.map(d => d.date);
+        // 防止數據為空
+        if (!data || data.length === 0) {
+            console.warn("沒有可用的運動數據");
+            document.getElementById('total-calories').textContent = "0";
+            document.getElementById('total-sets').textContent = "0";
+            document.getElementById('active-days').textContent = "0";
             
-            // 确保图表已初始化
-            if (progressChart && progressChart.data) {
-                progressChart.data.labels = labels;
-                progressChart.data.datasets[0].data = data.map(d => d.totalReps);
-                progressChart.data.datasets[1].data = data.map(d => d.calories);
-                progressChart.update();
-            } else {
-                console.error("进度图表未初始化");
-            }
+            // 清空图表数据
+            progressChart.data.labels = ['無數據'];
+            progressChart.data.datasets[0].data = [0];
+            progressChart.data.datasets[1].data = [0];
+            progressChart.update();
             
-            if (activityChart && activityChart.data) {
-                activityChart.data.labels = labels;
-                activityChart.data.datasets[0].data = data.map(d => d.totalSets);
-                activityChart.data.datasets[1].data = data.map(d => d.totalReps);
-                activityChart.update();
-            } else {
-                console.error("活动图表未初始化");
-            }
+            activityChart.data.labels = ['無數據'];
+            activityChart.data.datasets[0].data = [0];
+            activityChart.data.datasets[1].data = [0];
+            activityChart.update();
+            
+            return;
         }
+        
+        const totalCalories = data.reduce((sum, day) => sum + day.calories, 0);
+        const totalSets = data.reduce((sum, day) => sum + day.totalSets, 0);
+        const activeDays = new Set(data.map(day => day.date)).size; // 計算不重複的日期數
 
-        // 切換週期
-        function switchPeriod(period) {
-            currentPeriod = period;
-            fetchData();
-        }
+        document.getElementById('total-calories').textContent = Math.round(totalCalories);
+        document.getElementById('total-sets').textContent = totalSets;
+        document.getElementById('active-days').textContent = activeDays;
 
-
+        // 獲取唯一的日期列表並排序
+        const uniqueDates = [...new Set(data.map(d => d.date))].sort();
+        
+        // 為每個日期準備數據
+        const repsByDate = {};
+        const caloriesByDate = {};
+        const setsByDate = {};
+        
+        uniqueDates.forEach(date => {
+            repsByDate[date] = 0;
+            caloriesByDate[date] = 0;
+            setsByDate[date] = 0;
+        });
+        
+        // 累計每個日期的數據
+        data.forEach(item => {
+            repsByDate[item.date] += item.totalReps;
+            caloriesByDate[item.date] += item.calories;
+            setsByDate[item.date] += item.totalSets;
+        });
+        
+        // 更新圖表數據
+        progressChart.data.labels = uniqueDates;
+        progressChart.data.datasets[0].data = uniqueDates.map(date => repsByDate[date]);
+        progressChart.data.datasets[1].data = uniqueDates.map(date => caloriesByDate[date]);
+        progressChart.update();
+        
+        activityChart.data.labels = uniqueDates;
+        activityChart.data.datasets[0].data = uniqueDates.map(date => setsByDate[date]);
+        activityChart.data.datasets[1].data = uniqueDates.map(date => repsByDate[date]);
+        activityChart.update();
+    }
+        
         // 獲取數據
         async function fetchData() {
             try {
-                console.log("正在获取仪表盘数据...");
-                const response = await fetch('/api/dashboard_data');
-                
-                if (!response.ok) {
-                    console.error(`API请求失败: ${response.status} ${response.statusText}`);
-                    return;
-                }
-                
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    console.error("API返回的不是JSON格式:", contentType);
-                    return;
-                }
-                
-                const result = await response.json();
-                console.log("📊 後端回傳數據:", result);
-
-                if (result.success && result.records) {
-                    // 确保 records 是一个数组
-                    if (Array.isArray(result.records)) {
-                        // 根据当前时间范围过滤数据
-                        let filteredRecords = filterRecordsByPeriod(result.records, currentPeriod);
-                        console.log("过滤后的数据:", filteredRecords);
-                        
-                        const processedData = processData(filteredRecords);
-                        console.log("📈 處理後的數據:", processedData);
-                        
-                        updateStats(processedData);
-                    } else {
-                        console.error("API返回的records不是数组:", result.records);
-                    }
-                } else {
-                    console.error("获取数据失败:", result.message || "未知错误");
-                }
-            } catch (error) {
-                console.error('获取数据时出错:', error);
-            }
-        }
-
-// 根据时间范围过滤记录
-        function filterRecordsByPeriod(records, period) {
-            // 添加防御性检查
-            if (!records || !Array.isArray(records)) {
-                console.error("filterRecordsByPeriod 接收到无效数据:", records);
-                return []; // 返回空数组
-            }
-
-            const now = new Date();
-            let startDate;
-            
-            switch(period) {
-                case 'day':
-                    startDate = new Date(now.setHours(0, 0, 0, 0));
-                    break;
-                case 'week':
-                    startDate = new Date(now);
-                    startDate.setDate(now.getDate() - 7);
-                    break;
-                case 'month':
-                    startDate = new Date(now);
-                    startDate.setMonth(now.getMonth() - 1);
-                    break;
-                default:
-                    startDate = new Date(now);
-                    startDate.setDate(now.getDate() - 7);
-            }
-            
-            return records.filter(record => {
-                // 确保记录有日期字段
-                if (!record || !record.date) return false;
-                
-                try {
-                    const recordDate = new Date(record.date);
-                    return recordDate >= startDate;
-                } catch (e) {
-                    console.warn("无法解析日期:", record.date, e);
-                    return false;
-                }
-            });
-        }
-
-        // 處理數據
-        function processData(records) {
-            // 添加防御性检查
-            if (!records || !Array.isArray(records)) {
-                console.error("processData 接收到无效数据:", records);
-                return []; // 返回空数组而不是继续处理
-            }
-
-            const groupedData = {}; // 用來存放每一天的數據
-
-            // 按日期分組
-            records.forEach(record => {
-                // 确保 record 是有效对象
-                if (!record || typeof record !== 'object') {
-                    console.warn("跳过无效记录:", record);
-                    return; // 跳过这条记录
-                }
-
-                // 确保 date 字段存在
-                if (!record.date) {
-                    console.warn("记录缺少日期字段:", record);
-                    return; // 跳过这条记录
-                }
-
-                // 只取日期部分
-                const date = record.date.split(' ')[0];
-                
-                if (!groupedData[date]) {
-                    groupedData[date] = {
-                        date: date,
-                        totalSets: 0,
-                        totalReps: 0,
-                        calories: 0,
-                        exercises: new Set()
-                    };
-                }
-                
-                // 确保数值类型正确
-                const sets = parseInt(record.sets) || 0;
-                const reps = parseInt(record.reps) || 0;
-                
-                groupedData[date].totalSets += sets;
-                groupedData[date].totalReps += reps;
-                
-                // 确保 exercise_type 字段存在
-                if (record.exercise_type) {
-                    groupedData[date].exercises.add(record.exercise_type);
-                    
-                    // 计算卡路里消耗
-                    const caloriesPerRep = CALORIES_PER_REP[record.exercise_type] || 0.3;
-                    groupedData[date].calories += reps * caloriesPerRep;
-                }
-            });
-
-            console.log("分组后的数据:", groupedData);
-
-            // 转换为数组并按日期排序
-            return Object.values(groupedData).sort((a, b) => new Date(a.date) - new Date(b.date));
-        }
-
-        async function fetchData() {
-            try {
-                const response = await fetch('/api/exercise_data');
+                // 添加用户ID参数
+                const response = await fetch(`/api/exercise_data?user_id=${currentUserId}`);
                 const result = await response.json();
 
-                console.log("📊 後端回傳數據:", result); // 🔍 確認數據是否成功傳回
-
-                if (result.success) {
+                if (result.success && result.data) {
+                    console.log("API返回數據:", result.data);
                     const processedData = processData(result.data);
-                    console.log("📈 處理後的數據:", processedData); // 🔍 確認數據是否成功處理
                     updateStats(processedData);
                 } else {
-                    console.warn("⚠️ 未獲取到數據", result.message);
+                    console.warn("未獲取到數據", result.message || "API返回格式不正確");
+                    // 显示无数据状态，不再使用随机数据
+                    updateStats([]);
                 }
             } catch (error) {
-                console.error("🚨 錯誤:", error);
+                console.error("獲取數據錯誤:", error);
+                // 显示无数据状态，不再使用随机数据
+                updateStats([]);
             }
         }
 
-
-        // 事件監聽器設置
-        document.querySelectorAll('.time-button').forEach(button => {
-            button.addEventListener('click', function() {
-                // 移除所有按鈕的active類
-                document.querySelectorAll('.time-button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
+        // 生成預設數據
+        function generateDefaultData() {
+                const today = new Date();
+                const data = [];
                 
-                // 添加當前按鈕的active類
-                this.classList.add('active');
-                
-                // 更新當前時間範圍並重新獲取數據
-                currentPeriod = button.dataset.period;
-                fetchData();
-            });
-        });
-
-        // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            initCharts();
-            fetchData();
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("页面加载完成，初始化图表");
-            initCharts();
-            fetchData();
-            
-            // 時間過濾按鈕事件監聽
-            document.querySelectorAll('.time-button').forEach(button => {
-                button.addEventListener('click', function() {
-                    // 移除所有按鈕的active類
-                    document.querySelectorAll('.time-button').forEach(btn => {
-                        btn.classList.remove('active');
+                // 生成過去7天的預設數據
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    
+                    data.push({
+                        date: dateStr,
+                        totalSets: Math.floor(Math.random() * 10) + 1,
+                        totalReps: Math.floor(Math.random() * 50) + 10,
+                        calories: Math.floor(Math.random() * 200) + 50,
+                        exercises: ['squat', 'push-up']
                     });
-                    
-                    // 添加當前按鈕的active類
-                    this.classList.add('active');
-                    
-                    // 更新當前時間範圍並重新獲取數據
-                    currentPeriod = this.dataset.period;
-                    fetchData();
-                });
-            });
+                }
+                
+            return data;
+        }
+
+        
+        // 處理數據
+        function processData(records) {
+        // 確保records是一個數組
+        if (!Array.isArray(records)) {
+            console.error("API返回的數據不是數組格式");
+            return [];
+        }
+        
+        const groupedData = {}; // 用來存放每一天的數據
+
+        // 按日期分組
+        records.forEach(record => {
+            // 確保record是一個有效的對象
+            if (!record || typeof record !== 'object') {
+                return;
+            }
+            
+            // 獲取日期
+            const date = record.date || '';
+            if (!date) return;
+            
+            if (!groupedData[date]) {
+                groupedData[date] = {
+                    date: date,
+                    totalSets: 0,
+                    totalReps: 0,
+                    calories: 0,
+                    exercises: []
+                };
+            }
+            
+            // 從數據庫獲取的值可能是字符串，需要轉換為數字
+            const sets = parseInt(record.total_sets) || 0;
+            const reps = parseInt(record.total_reps) || 0;
+            
+            groupedData[date].totalSets += sets;
+            groupedData[date].totalReps += reps;
+            
+            if (record.exercise_type) {
+                if (!groupedData[date].exercises.includes(record.exercise_type)) {
+                    groupedData[date].exercises.push(record.exercise_type);
+                }
+                
+                // 計算卡路里消耗
+                const caloriesPerRep = CALORIES_PER_REP[record.exercise_type] || 0.3;
+                groupedData[date].calories += reps * caloriesPerRep;
+            }
         });
 
-
-        function updateCharts(exerciseData) {
-            let labels = [];
-            let repsData = [];
-            let setsData = [];
-            let weightData = [];
-
-            exerciseData.forEach(entry => {
-                labels.push(entry.timestamp);
-                repsData.push(entry.reps);
-                setsData.push(entry.sets);
-                weightData.push(entry.weight);
+        // 轉換為數組並按日期排序
+        const result = Object.values(groupedData);
+        if (result.length === 0) {
+            return [];
+        }
+        return result.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }   
+        
+        
+        // 切換週期
+        function switchPeriod(period) {
+            currentPeriod = period;
+            
+            // 移除所有按鈕的active類
+            document.querySelectorAll('.time-button').forEach(btn => {
+                btn.classList.remove('active');
             });
-
-            const progressCtx = document.getElementById('progress-chart').getContext('2d');
-            new Chart(progressCtx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Reps',
-                            data: repsData,
-                            borderColor: '#8884d8',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Sets',
-                            data: setsData,
-                            borderColor: '#f39c12',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Weight (kg)',
-                            data: weightData,
-                            borderColor: '#82ca9d',
-                            tension: 0.1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    }
+            
+            // 添加當前按鈕的active類
+            document.querySelector(`.time-button[data-period="${period}"]`).classList.add('active');
+            
+            fetchData();
+        }
+        
+        // 顯示遊戲通知
+        function showNotification(title, message) {
+            const notification = document.getElementById('game-notification');
+            notification.querySelector('.notification-title').textContent = title;
+            notification.querySelector('.notification-message').textContent = message;
+            notification.classList.add('show');
+            
+            // 5秒後自動關閉
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+        
+        // 關閉通知
+        function closeNotification() {
+            document.getElementById('game-notification').classList.remove('show');
+        }
+        
+        // 淡入效果
+        function handleIntersection(entries, observer) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
                 }
             });
         }
+        
+        // 頁面載入完成後執行
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化圖表
+            initCharts();
+            
+            // 獲取數據
+            fetchData();
+
+            // 設置時間過濾器事件
+            document.querySelectorAll('.time-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    switchPeriod(button.dataset.period);
+                });
+            });
+
+            // 冒險地圖節點交互
+            const mapNodes = document.querySelectorAll('.map-node');
+            
+            mapNodes.forEach(node => {
+                node.addEventListener('click', () => {
+                    // 獲取節點編號
+                    const levelNumber = node.textContent.trim();
+                    
+                    // 如果是已完成或當前關卡，顯示詳細信息
+                    if (node.classList.contains('completed') || node.classList.contains('current')) {
+                        showNotification(`關卡 ${levelNumber} 信息`, 
+                            node.classList.contains('completed') 
+                                ? `恭喜！你已完成關卡 ${levelNumber}！` 
+                                : `你正在進行關卡 ${levelNumber}，繼續努力！`);
+                    } else {
+                        // 如果是未解鎖關卡
+                        showNotification('關卡未解鎖', '完成當前關卡後才能解鎖此關卡！');
+                    }
+                });
+            });
+
+            
+
+            
+            // 設置淡入效果
+            const fadeElements = document.querySelectorAll('.fade-in');
+            const observer = new IntersectionObserver(handleIntersection, {
+                threshold: 0.1
+            });
+            
+            fadeElements.forEach(element => {
+                observer.observe(element);
+            });
+            
+            // 示例：顯示通知
+            setTimeout(() => {
+                showNotification('歡迎回來！', '你已經連續訓練3天，繼續保持！');
+            }, 3000);
 
 
+            
+
+        });
     </script>
 </body>
 </html>
+                    
