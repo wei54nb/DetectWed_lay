@@ -1,29 +1,35 @@
-import logging
 import mysql.connector
+import logging
 from mysql.connector import Error
-from flask import current_app
 
 logger = logging.getLogger(__name__)
+
 
 def get_db_connection():
     """获取数据库连接"""
     try:
-        # 从配置中获取数据库配置
+        # 数据库连接配置
         db_config = {
             'host': 'localhost',
             'user': 'nkust_user',
             'password': '1234',
             'database': 'nkust_exercise'
         }
+        
+        logger.info(f"嘗試連接到數據庫: {db_config['host']}/{db_config['database']}")
         conn = mysql.connector.connect(**db_config)
-        return conn
-    except mysql.connector.Error as err:
-        if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
-            logger.error("数据库用户名或密码错误")
-        elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
-            logger.error("数据库不存在")
+        
+        if conn.is_connected():
+            logger.info(f"成功連接到數據庫: {db_config['host']}/{db_config['database']}")
+            return conn
         else:
-            logger.error(f"数据库连接错误: {err}")
+            logger.error("數據庫連接失敗")
+            return None
+    except Error as e:
+        logger.error(f"數據庫連接錯誤: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"獲取數據庫連接時出錯: {e}")
         return None
 
 def test_db_connection():

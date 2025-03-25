@@ -5,6 +5,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const levelModal = document.getElementById('level-modal');
     const achievementsModal = document.getElementById('achievements-modal');
     const achievementNotification = document.getElementById('achievement-notification');
+
+    const completedLevelsBtn = document.getElementById('completed-levels-btn');
+    if (completedLevelsBtn) {
+        completedLevelsBtn.addEventListener('click', showCompletedLevels);
+    }
     
     // 用户信息
     let userData = {
@@ -278,3 +283,64 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = `/game/level/${levelId}`;
     }
 });
+
+
+async function showCompletedLevels() {
+    try {
+        const response = await fetch(`/api/game/completed_levels?user_id=${userData.userId}`);
+        const data = await response.json();
+        
+        if (data.success && data.completed_levels) {
+            const completedLevelsList = document.getElementById('completed-levels-list');
+            if (!completedLevelsList) {
+                console.error('找不到完成關卡列表元素');
+                return;
+            }
+            
+            completedLevelsList.innerHTML = '';
+            
+            if (data.completed_levels.length === 0) {
+                completedLevelsList.innerHTML = '<div class="no-completed-levels">還沒有完成任何關卡</div>';
+                return;
+            }
+            
+            // 創建表格顯示完成的關卡
+            const table = document.createElement('table');
+            table.className = 'completed-levels-table';
+            
+            // 添加表頭
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th>關卡名稱</th>
+                    <th>完成時間</th>
+                    <th>獲得經驗</th>
+                    <th>運動類型</th>
+                    <th>運動次數</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+            
+            // 添加表格內容
+            const tbody = document.createElement('tbody');
+            data.completed_levels.forEach(level => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${level.level_name || `關卡 ${level.level_id}`}</td>
+                    <td>${level.completion_time || '未知'}</td>
+                    <td>${level.exp_earned || 0}</td>
+                    <td>${level.exercise_type || '未知'}</td>
+                    <td>${level.exercise_count || 0}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            
+            completedLevelsList.appendChild(table);
+        } else {
+            console.error('獲取完成關卡記錄失敗:', data.message);
+        }
+    } catch (error) {
+        console.error('獲取完成關卡記錄時出錯:', error);
+    }
+}

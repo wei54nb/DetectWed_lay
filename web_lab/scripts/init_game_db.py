@@ -87,7 +87,10 @@ def create_game_tables():
         
         # 插入初始关卡数据
         insert_initial_levels(cursor, conn)
-        
+        ensure_user_game_progress_table()
+
+        # 確保 user_completed_levels 表結構正確
+        ensure_user_completed_levels_table()
         cursor.close()
         conn.close()
         
@@ -136,9 +139,118 @@ def insert_initial_levels(cursor, conn):
         logger.error(f"插入初始关卡数据时出错: {e}")
         conn.rollback()
 
+def ensure_user_game_progress_table():
+    """確保 user_game_progress 表結構正確"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            logger.error("無法連接到數據庫")
+            return False
+            
+        cursor = conn.cursor()
+        
+        # 檢查表是否存在
+        cursor.execute("SHOW TABLES LIKE 'user_game_progress'")
+        table_exists = cursor.fetchone()
+        
+        if not table_exists:
+            # 創建用戶遊戲進度表
+            cursor.execute("""
+            CREATE TABLE user_game_progress (
+                progress_id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                current_level INT NOT NULL DEFAULT 1,
+                total_exp INT NOT NULL DEFAULT 0,
+                monsters_defeated INT NOT NULL DEFAULT 0,
+                last_played DATETIME
+            )
+            """)
+            logger.info("創建 user_game_progress 表")
+        else:
+            # 檢查表結構
+            cursor.execute("DESCRIBE user_game_progress")
+            columns = {row[0]: row for row in cursor.fetchall()}
+            
+            # 檢查是否缺少必要的列
+            if 'last_played' not in columns:
+                cursor.execute("ALTER TABLE user_game_progress ADD COLUMN last_played DATETIME")
+                logger.info("添加 last_played 列到 user_game_progress 表")
+            
+            if 'monsters_defeated' not in columns:
+                cursor.execute("ALTER TABLE user_game_progress ADD COLUMN monsters_defeated INT NOT NULL DEFAULT 0")
+                logger.info("添加 monsters_defeated 列到 user_game_progress 表")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return True
+    except Exception as e:
+        logger.error(f"確保 user_game_progress 表結構正確時出錯: {e}")
+        return False
+
 if __name__ == "__main__":
     logger.info("开始初始化游戏数据库...")
     if create_game_tables():
         logger.info("游戏数据库初始化成功")
     else:
         logger.error("游戏数据库初始化失败")
+
+
+
+def ensure_user_completed_levels_table():
+    """確保 user_completed_levels 表結構正確"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            logger.error("無法連接到數據庫")
+            return False
+            
+        cursor = conn.cursor()
+        
+        # 檢查表是否存在
+        cursor.execute("SHOW TABLES LIKE 'user_completed_levels'")
+        table_exists = cursor.fetchone()
+        
+        if not table_exists:
+            # 創建用戶完成關卡表
+            cursor.execute("""
+            CREATE TABLE user_completed_levels (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                level_id INT NOT NULL,
+                completion_time DATETIME NOT NULL,
+                exp_earned INT NOT NULL DEFAULT 0,
+                exercise_type VARCHAR(50),
+                exercise_count INT DEFAULT 0,
+                INDEX (user_id),
+                INDEX (level_id)
+            )
+            """)
+            logger.info("創建 user_completed_levels 表")
+        else:
+            # 檢查表結構
+            cursor.execute("DESCRIBE user_completed_levels")
+            columns = {row[0]: row for row in cursor.fetchall()}
+            
+            # 檢查是否缺少必要的列
+            if 'exercise_type' not in columns:
+                cursor.execute("ALTER TABLE user_completed_levels ADD COLUMN exercise_type VARCHAR(50)")
+                logger.info("添加 exercise_type 列到 user_completed_levels 表")
+            
+            if 'exercise_count' not in columns:
+                cursor.execute("ALTER TABLE user_completed_levels ADD COLUMN exercise_count INT DEFAULT 0")
+                logger.info("添加 exercise_count 列到 user_completed_levels 表")
+                
+            if 'exp_earned' not in columns:
+                cursor.execute("ALTER TABLE user_completed_levels ADD COLUMN exp_earned INT NOT NULL DEFAULT 0")
+                logger.info("添加 exp_earned 列到 user_completed_levels 表")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return True
+    except Exception as e:
+        logger.error(f"確保 user_completed_levels 表結構正確時出錯: {e}")
+        return False

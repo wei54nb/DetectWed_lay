@@ -5,6 +5,9 @@ let currentMonsterIndex = 0;
 let totalMonsters = 1; // 修改為每關只有1個怪物
 let monsterHP = 100;
 let initialMonsterHP = 100;
+let monsterShield = 0; // 怪物護盾值
+let initialMonsterShield = 0; // 初始護盾值
+let shieldWeightFactor = 1; // 護盾重量係數，影響經驗值計算
 
 // 添加全局变量，避免重复定义
 let isDetecting = false;
@@ -445,11 +448,13 @@ function updateMonsterHP(hp) {
     const hpBarFill = document.getElementById('monster-hp-bar');
     const hpValue = document.getElementById('monster-hp');
     const monsterCount = document.getElementById('monster-count');
+    const maxHpValue = document.getElementById('monster-max-hp');
     
     if (hpBarFill && hpValue) {
         const percentage = (hp / initialMonsterHP) * 100;
         hpBarFill.style.width = `${percentage}%`;
-        hpValue.textContent = `${hp}/${initialMonsterHP}`;
+        hpValue.textContent = hp;
+        if (maxHpValue) maxHpValue.textContent = initialMonsterHP;
     }
     
     if (monsterCount) {
@@ -466,6 +471,56 @@ function updateMonsterHP(hp) {
     }
     
     monsterHP = hp;
+}
+
+// 更新怪物護盾顯示
+function updateMonsterShield(shield) {
+    const shieldBarFill = document.getElementById('monster-shield-bar');
+    const shieldValue = document.getElementById('monster-shield');
+    const maxShieldValue = document.getElementById('monster-max-shield');
+    
+    if (shieldBarFill && shieldValue) {
+        // 避免除以零錯誤
+        const percentage = initialMonsterShield > 0 ? (shield / initialMonsterShield) * 100 : 0;
+        shieldBarFill.style.width = `${percentage}%`;
+        shieldValue.textContent = shield;
+        if (maxShieldValue) maxShieldValue.textContent = initialMonsterShield;
+    }
+    
+    monsterShield = shield;
+}
+
+// 初始化護盾控件
+function initShieldControls() {
+    const shieldValueInput = document.getElementById('shield-value');
+    const shieldWeightInput = document.getElementById('shield-weight');
+    const applyShieldButton = document.getElementById('apply-shield');
+    
+    if (applyShieldButton && shieldValueInput && shieldWeightInput) {
+        // 設置初始值
+        shieldValueInput.value = initialMonsterShield;
+        shieldWeightInput.value = shieldWeightFactor;
+        
+        // 添加應用按鈕事件
+        applyShieldButton.addEventListener('click', function() {
+            // 獲取用戶輸入的護盾值和重量係數
+            const newShieldValue = parseInt(shieldValueInput.value) || 0;
+            const newWeightFactor = parseFloat(shieldWeightInput.value) || 1;
+            
+            // 更新護盾值和重量係數
+            initialMonsterShield = newShieldValue;
+            monsterShield = newShieldValue;
+            shieldWeightFactor = newWeightFactor;
+            
+            // 更新護盾顯示
+            updateMonsterShield(monsterShield);
+            
+            // 顯示確認訊息
+            showMonsterDialogue(`護盾已設置為 ${monsterShield}，重量係數為 ${shieldWeightFactor}`);
+            
+            console.log(`護盾已設置為 ${monsterShield}，重量係數為 ${shieldWeightFactor}`);
+        });
+    }
 }
 
 
@@ -879,7 +934,64 @@ function showLevelCompleteMessage() {
     
     // 添加到頁面
     document.body.appendChild(levelCompleteMessage);
+
+    let expReward = 50;
+    switch(currentLevel) {
+        case 1: expReward = 50; break;
+        case 2: expReward = 100; break;
+        case 3: expReward = 150; break;
+        case 4: expReward = 200; break;
+        case 5: expReward = 250; break;
+        default: expReward = 50 + (currentLevel - 1) * 50;
+    }
+
+    console.log(`準備發送關卡完成請求，關卡: ${currentLevel}, 經驗值: ${expReward}`);
+    updateLevelCompletion(currentLevel, expReward);
     
+    // 添加按鈕事件
+    document.getElementById('next-level-btn').addEventListener('click', function() {
+        // 關閉訊息
+        levelCompleteMessage.remove();
+        
+        // 進入下一關
+        const nextLevel = currentLevel + 1;
+        initLevel(nextLevel);
+    });
+    
+    // 顯示關卡完成訊息
+    const levelCompleteMsg = document.getElementById('level-complete-message');
+    if (levelCompleteMsg) {
+        levelCompleteMsg.classList.add('active');
+        
+        // 設置關卡完成訊息內容
+        const levelTitle = document.querySelector('.level-title');
+        const levelName = levelTitle ? levelTitle.textContent : `關卡 ${currentLevel}`;
+        
+        const levelCompleteTitle = document.getElementById('level-complete-title');
+        if (levelCompleteTitle) {
+            levelCompleteTitle.textContent = `${levelName} 完成！`;
+        }
+        
+        // 計算獲得的經驗值 (根據關卡難度)
+        let expReward = 50;
+        switch(currentLevel) {
+            case 1: expReward = 50; break;
+            case 2: expReward = 100; break;
+            case 3: expReward = 150; break;
+            case 4: expReward = 200; break;
+            case 5: expReward = 250; break;
+            default: expReward = 50 + (currentLevel - 1) * 50;
+        }
+        
+        const expRewardText = document.getElementById('exp-reward');
+        if (expRewardText) {
+            expRewardText.textContent = expReward;
+        }
+        
+        // 發送關卡完成請求到伺服器
+        updateLevelCompletion(currentLevel, expReward);
+    }
+
     // 確保按鈕可點擊 - 修改樣式
     const buttonsContainer = levelCompleteMessage.querySelector('.level-complete-buttons');
     if (buttonsContainer) {
@@ -962,6 +1074,17 @@ function showLevelCompleteMessage() {
             
             // 跳轉到地圖頁面
             window.location.href = '/game/map';
+        }
+    });
+
+    document.getElementById('return-map-btn').addEventListener('click', function() {
+        // 關閉訊息
+        levelCompleteMessage.remove();
+        
+        // 顯示地圖
+        const mapModal = document.getElementById('map-modal');
+        if (mapModal) {
+            mapModal.classList.add('active');
         }
     });
     
@@ -1116,8 +1239,14 @@ function initLevel(level) {
     // 重置當前怪物血量
     monsterHP = initialMonsterHP;
     
-    // 更新怪物血量顯示
+    // 重置護盾值（初始為0，由玩家設定）
+    initialMonsterShield = 0;
+    monsterShield = 0;
+    shieldWeightFactor = 1;
+    
+    // 更新怪物血量和護盾顯示
     updateMonsterHP(monsterHP);
+    updateMonsterShield(monsterShield);
     
     // 更新關卡顯示
     updateLevelDisplay(level);
@@ -1132,10 +1261,13 @@ function initLevel(level) {
     // 重置 decreaseMonsterHP 的靜態變量
     decreaseMonsterHP.lastCount = 0;
     
-    console.log(`關卡 ${level} 初始化完成，怪物血量: ${monsterHP}/${initialMonsterHP}`);
+    console.log(`關卡 ${level} 初始化完成，怪物血量: ${monsterHP}/${initialMonsterHP}，護盾: ${monsterShield}/${initialMonsterShield}`);
     
     // 顯示關卡開始提示
     showLevelStartNotification(level);
+    
+    // 初始化護盾設置控件
+    initShieldControls();
 }
 
 
@@ -2785,4 +2917,124 @@ function updateLevelDisplay(level) {
                 levelDesc.textContent = `第 ${level} 關 - 挑戰更高難度`;
         }
     }
+}
+
+
+
+// 新增函數：發送關卡完成請求到伺服器
+function updateLevelCompletion(levelId, expReward) {
+    console.log(`發送關卡完成請求: 關卡 ${levelId}, 經驗值 ${expReward}`);
+    
+    // 獲取用戶ID (從頁面元素或使用默認值)
+    const userId = document.getElementById('student-id') ? 
+                  document.getElementById('student-id').value : 'C111151146';
+    
+    console.log(`用戶ID: ${userId}, 關卡ID: ${levelId}, 經驗值: ${expReward}, 運動類型: ${currentExerciseType}, 運動計數: ${exerciseCounter}`);
+    
+    // 發送請求到伺服器
+    fetch('/api/game/complete_level', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            level_id: levelId,
+            exp_reward: expReward,
+            exercise_type: currentExerciseType || 'squat',
+            exercise_count: exerciseCounter || 0
+        })
+    })
+    .then(response => {
+        console.log(`API響應狀態: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP錯誤! 狀態: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('關卡完成API響應數據:', data);
+        if (data.success) {
+            console.log('關卡完成數據已保存:', data);
+            
+            // 顯示成功訊息
+            showNotification(`關卡 ${levelId} 完成！獲得 ${expReward} 經驗值`, 'success');
+            
+            // 如果有新解鎖的成就，顯示成就通知
+            if (data.new_achievements && data.new_achievements.length > 0) {
+                data.new_achievements.forEach(achievement => {
+                    showAchievementNotification(achievement.name, achievement.description);
+                });
+            }
+        } else {
+            console.error('關卡完成數據保存失敗:', data.message);
+            showNotification(`關卡數據保存失敗: ${data.message}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('關卡完成請求錯誤:', error);
+        showNotification(`關卡完成請求錯誤: ${error.message}`, 'error');
+        
+        // 嘗試重新發送請求
+        setTimeout(() => {
+            console.log('嘗試重新發送關卡完成請求...');
+            retryLevelCompletion(userId, levelId, expReward);
+        }, 2000);
+    });
+}
+
+
+// 添加重試函數
+function retryLevelCompletion(userId, levelId, expReward) {
+    console.log(`重試發送關卡完成請求: 用戶 ${userId}, 關卡 ${levelId}`);
+    
+    fetch('/api/game/complete_level', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            level_id: levelId,
+            exp_reward: expReward,
+            exercise_type: currentExerciseType || 'squat',
+            exercise_count: exerciseCounter || 0,
+            retry: true
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('重試成功: 關卡完成數據已保存');
+            showNotification(`關卡 ${levelId} 完成！獲得 ${expReward} 經驗值`, 'success');
+        } else {
+            console.error('重試失敗: 關卡完成數據保存失敗');
+            showNotification('關卡數據保存失敗，請稍後再試', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('重試請求錯誤:', error);
+    });
+}
+
+
+// 添加通知函數
+function showNotification(message, type = 'info') {
+    console.log(`顯示通知: ${message}, 類型: ${type}`);
+    
+    // 創建通知元素
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    // 添加到頁面
+    document.body.appendChild(notification);
+    
+    // 設置自動消失
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => {
+            notification.remove();
+        }, 500);
+    }, 3000);
 }
