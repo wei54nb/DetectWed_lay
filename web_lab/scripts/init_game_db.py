@@ -39,8 +39,14 @@ def create_game_tables():
         if not conn:
             logger.error("无法连接到数据库")
             return False
+
             
         cursor = conn.cursor()
+
+        # 添加新的表格創建
+        if not ensure_exercise_info_table():
+            logger.error("創建 exercise_info 表失敗")
+            return False
         
         # 创建关卡表
         cursor.execute("""
@@ -223,8 +229,8 @@ def ensure_user_completed_levels_table():
                 exp_earned INT NOT NULL DEFAULT 0,
                 exercise_type VARCHAR(50),
                 exercise_count INT DEFAULT 0,
-                INDEX (user_id),
-                INDEX (level_id)
+                shield_value INT DEFAULT 0,
+                shield_weight FLOAT DEFAULT 1.0
             )
             """)
             logger.info("創建 user_completed_levels 表")
@@ -234,17 +240,13 @@ def ensure_user_completed_levels_table():
             columns = {row[0]: row for row in cursor.fetchall()}
             
             # 檢查是否缺少必要的列
-            if 'exercise_type' not in columns:
-                cursor.execute("ALTER TABLE user_completed_levels ADD COLUMN exercise_type VARCHAR(50)")
-                logger.info("添加 exercise_type 列到 user_completed_levels 表")
+            if 'shield_value' not in columns:
+                cursor.execute("ALTER TABLE user_completed_levels ADD COLUMN shield_value INT DEFAULT 0")
+                logger.info("添加 shield_value 列到 user_completed_levels 表")
             
-            if 'exercise_count' not in columns:
-                cursor.execute("ALTER TABLE user_completed_levels ADD COLUMN exercise_count INT DEFAULT 0")
-                logger.info("添加 exercise_count 列到 user_completed_levels 表")
-                
-            if 'exp_earned' not in columns:
-                cursor.execute("ALTER TABLE user_completed_levels ADD COLUMN exp_earned INT NOT NULL DEFAULT 0")
-                logger.info("添加 exp_earned 列到 user_completed_levels 表")
+            if 'shield_weight' not in columns:
+                cursor.execute("ALTER TABLE user_completed_levels ADD COLUMN shield_weight FLOAT DEFAULT 1.0")
+                logger.info("添加 shield_weight 列到 user_completed_levels 表")
         
         conn.commit()
         cursor.close()
@@ -254,3 +256,59 @@ def ensure_user_completed_levels_table():
     except Exception as e:
         logger.error(f"確保 user_completed_levels 表結構正確時出錯: {e}")
         return False
+
+
+def ensure_exercise_info_table():
+    """確保 exercise_info 表結構正確"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            logger.error("無法連接到數據庫")
+            return False
+            
+        cursor = conn.cursor()
+        
+        # 檢查表是否存在
+        cursor.execute("SHOW TABLES LIKE 'exercise_info'")
+        table_exists = cursor.fetchone()
+        
+        if not table_exists:
+            # 創建運動記錄表
+            cursor.execute("""
+            CREATE TABLE exercise_info (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                student_id VARCHAR(50) NOT NULL,
+                exercise_type VARCHAR(50) NOT NULL,
+                weight INT NOT NULL DEFAULT 0,
+                reps INT NOT NULL DEFAULT 10,
+                sets INT NOT NULL DEFAULT 3,
+                timestamp DATETIME NOT NULL,
+                total_count INT NOT NULL DEFAULT 0,
+                game_level INT DEFAULT NULL
+            )
+            """)
+            logger.info("創建 exercise_info 表")
+        else:
+            # 檢查表結構
+            cursor.execute("DESCRIBE exercise_info")
+            columns = {row[0]: row for row in cursor.fetchall()}
+            
+            # 檢查是否缺少必要的列
+            if 'game_level' not in columns:
+                cursor.execute("ALTER TABLE exercise_info ADD COLUMN game_level INT DEFAULT NULL")
+                logger.info("添加 game_level 列到 exercise_info 表")
+            
+            if 'total_count' not in columns:
+                cursor.execute("ALTER TABLE exercise_info ADD COLUMN total_count INT NOT NULL DEFAULT 0")
+                logger.info("添加 total_count 列到 exercise_info 表")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"確保 exercise_info 表結構正確時出錯: {e}")
+        return False
+

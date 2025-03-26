@@ -522,44 +522,6 @@ def add_exp():
 
 
 
-def check_and_unlock_achievements(cursor, user_id, level, total_exp):
-    """检查并解锁成就"""
-    # 检查等级成就
-    cursor.execute("""
-        SELECT achievement_id
-        FROM achievements
-        WHERE achievement_type = 'level' AND requirement <= %s
-        AND achievement_id NOT IN (
-            SELECT achievement_id
-            FROM user_achievements
-            WHERE user_id = %s
-        )
-    """, (level, user_id))
-    
-    level_achievements = cursor.fetchall()
-    
-    # 检查经验值成就
-    cursor.execute("""
-        SELECT achievement_id
-        FROM achievements
-        WHERE achievement_type = 'exp' AND requirement <= %s
-        AND achievement_id NOT IN (
-            SELECT achievement_id
-            FROM user_achievements
-            WHERE user_id = %s
-        )
-    """, (total_exp, user_id))
-    
-    exp_achievements = cursor.fetchall()
-    
-    # 解锁成就
-    for achievement in level_achievements + exp_achievements:
-        cursor.execute("""
-            INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
-            VALUES (%s, %s, NOW())
-        """, (user_id, achievement['achievement_id']))
-
-
 @game_bp.route('/api/game/complete_level', methods=['POST'])
 def complete_game_level():
     """完成關卡，更新用戶進度"""
@@ -569,9 +531,18 @@ def complete_game_level():
     exp_reward = data.get('exp_reward', 50)
     exercise_type = data.get('exercise_type', 'squat')
     exercise_count = data.get('exercise_count', 0)
+    shield_value = data.get('shield_value', 0)  # 獲取護盾值
+    shield_weight = data.get('shield_weight', 1)  # 獲取護盾重量係數
     
-    logger.info(f"用戶 {user_id} 完成關卡 {level_id}，獲得經驗值 {exp_reward}")
-    
+    # 獲取新增的重量和組數數據
+    weight = data.get('weight', 0)
+    reps = data.get('reps', 10)
+    sets = data.get('sets', 3)
+    completed_sets = data.get('completed_sets', 0)
+
+    logger.info(f"用戶 {user_id} 完成關卡 {level_id}，獲得經驗值 {exp_reward}，護盾值 {shield_value}，重量係數 {shield_weight}")
+    logger.info(f"運動詳情: 類型={exercise_type}, 重量={weight}kg, 次數={reps}, 組數={sets}, 已完成組數={completed_sets}")
+
     try:
         conn = get_db_connection()
         if not conn:
@@ -588,8 +559,62 @@ def complete_game_level():
         progress = cursor.fetchone()
         
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        logger.info(f"當前時間: {current_time}")
+
+        # 檢查是否已經記錄過這個關卡
+        check_query = """
+        SELECT * FROM user_completed_levels 
+        WHERE user_id = %s AND level_id = %s AND DATE(completed_at) = DATE(%s)
+        """
+        cursor.execute(check_query, (user_id, level_id, current_time))
+        existing_record = cursor.fetchone()
         
+        # 只有在當天沒有記錄時才插入新記錄
+        if not existing_record:
+            # 記錄關卡完成詳情到 user_completed_levels 表
+            insert_level_query = """
+            INSERT INTO user_completed_levels 
+            (user_id, level_id, completed_at, exp_earned, exercise_type, exercise_count, shield_value, shield_weight)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            
+            cursor.execute(insert_level_query, (
+                user_id, 
+                level_id, 
+                current_time, 
+                exp_reward, 
+                exercise_type, 
+                exercise_count, 
+                shield_value, 
+                shield_weight
+            ))
+            logger.info(f"記錄關卡完成詳情，影響行數: {cursor.rowcount}")
+        else:
+            logger.info(f"用戶 {user_id} 今天已經記錄過關卡 {level_id}，不重複記錄")
+
+        # 如果用戶完成了至少一組運動，也記錄到 exercise_info 表
+        if completed_sets > 0:
+            insert_exercise_query = """
+            INSERT INTO exercise_info 
+            (student_id, exercise_type, weight, reps, sets, timestamp, total_count, game_level)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            
+            cursor.execute(insert_exercise_query, (
+                user_id, 
+                exercise_type, 
+                weight, 
+                reps, 
+                completed_sets,  # 實際完成的組數
+                current_time,
+                exercise_count,
+                level_id  # 記錄關卡ID
+            ))
+            logger.info(f"記錄運動數據，影響行數: {cursor.rowcount}")
+        
+        # 初始化新等級和總經驗值變量
+        new_level = level_id
+        new_total_exp = exp_reward
+
         if not progress:
             # 如果沒有記錄，創建新記錄
             logger.info(f"用戶 {user_id} 沒有進度記錄，創建新記錄")
@@ -606,6 +631,8 @@ def complete_game_level():
             # 更新現有記錄
             # 只有當新關卡大於當前關卡時才更新 current_level
             new_level = max(progress['current_level'], level_id)
+            new_total_exp = progress['total_exp'] + exp_reward
+            
             logger.info(f"用戶 {user_id} 已有進度記錄，當前關卡: {progress['current_level']}, 新關卡: {new_level}")
             
             update_query = """
@@ -621,47 +648,18 @@ def complete_game_level():
             cursor.execute(update_query, (new_level, exp_reward, current_time, user_id))
             logger.info(f"更新用戶 {user_id} 的進度記錄，影響行數: {cursor.rowcount}")
         
-        # 同時在 exercise_info 表中記錄運動數據
-        try:
-            exercise_query = """
-            INSERT INTO exercise_info 
-            (student_id, exercise_type, reps, sets, timestamp)
-            VALUES (%s, %s, %s, 1, %s)
-            """
-            logger.info(f"執行SQL: {exercise_query} 參數: {(user_id, exercise_type, exercise_count, current_time)}")
-            
-            cursor.execute(exercise_query, (user_id, exercise_type, exercise_count, current_time))
-            logger.info(f"記錄運動數據，影響行數: {cursor.rowcount}")
-        except Exception as e:
-            logger.warning(f"記錄運動數據時出錯: {e}，但繼續處理關卡完成")
+        # 移除重複的運動數據記錄代碼，因為已經在上面處理過了
         
-        # 新增：記錄用戶完成的關卡到 user_completed_levels 表
+        # 檢查是否解鎖新成就
+        new_achievements = []
         try:
-            # 檢查是否已經記錄過這個關卡
-            check_query = """
-            SELECT * FROM user_completed_levels 
-            WHERE user_id = %s AND level_id = %s
-            """
-            logger.info(f"執行SQL: {check_query} 參數: {(user_id, level_id)}")
-            
-            cursor.execute(check_query, (user_id, level_id))
-            existing_record = cursor.fetchone()
-            
-            if not existing_record:
-                # 如果沒有記錄，則添加新記錄
-                insert_completed_query = """
-                INSERT INTO user_completed_levels 
-                (user_id, level_id, completion_time, exp_earned, exercise_type, exercise_count)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """
-                logger.info(f"執行SQL: {insert_completed_query} 參數: {(user_id, level_id, current_time, exp_reward, exercise_type, exercise_count)}")
-                
-                cursor.execute(insert_completed_query, (user_id, level_id, current_time, exp_reward, exercise_type, exercise_count))
-                logger.info(f"記錄用戶完成關卡，影響行數: {cursor.rowcount}")
-            else:
-                logger.info(f"用戶 {user_id} 已經完成過關卡 {level_id}，不重複記錄")
+            new_achievements = check_and_unlock_achievements(cursor, user_id, level_id, new_total_exp)
         except Exception as e:
-            logger.warning(f"記錄用戶完成關卡時出錯: {e}，但繼續處理")
+            logger.warning(f"檢查成就時出錯: {e}，但繼續處理關卡完成")
+        
+        # 確保提交事務
+        conn.commit()
+        logger.info("數據庫事務已提交")
         
         # 獲取更新後的用戶進度
         cursor.execute(
@@ -671,36 +669,24 @@ def complete_game_level():
         updated_progress = cursor.fetchone()
         logger.info(f"更新後的用戶進度: {updated_progress}")
         
-        # 檢查是否解鎖新成就
-        new_achievements = []
-        try:
-            new_achievements = check_and_unlock_achievements(cursor, user_id, level_id, updated_progress['total_exp'])
-        except Exception as e:
-            logger.warning(f"檢查成就時出錯: {e}，但繼續處理關卡完成")
-        
-        # 確保提交事務
-        conn.commit()
-        logger.info("數據庫事務已提交")
-        
         cursor.close()
         conn.close()
         
         return jsonify({
             'success': True,
-            'message': f'成功完成關卡 {level_id}',
+            'message': '關卡完成數據已保存',
             'progress': {
                 'current_level': updated_progress['current_level'],
-                'total_exp': updated_progress['total_exp'],
-                'monsters_defeated': updated_progress['monsters_defeated'],
-                'last_played': updated_progress['last_played'].strftime('%Y-%m-%d %H:%M:%S') if updated_progress['last_played'] else None
+                'total_exp': updated_progress['total_exp']
             },
             'new_achievements': new_achievements
         })
         
     except Exception as e:
         logger.error(f"完成關卡時出錯: {e}")
-        traceback.print_exc()  # 打印完整的堆疊跟踪
+        traceback.print_exc()  # 打印詳細錯誤堆疊
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 
 def check_and_unlock_achievements(cursor, user_id, level_id, total_exp):
@@ -802,4 +788,62 @@ def get_completed_levels():
     
     except Exception as e:
         logger.error(f"獲取用戶完成關卡記錄時出錯: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+
+@game_bp.route('/api/exercise/record', methods=['POST'])
+def record_exercise():
+    """記錄用戶完成的運動數據"""
+    data = request.json
+    student_id = data.get('student_id', '')
+    exercise_type = data.get('exercise_type', 'squat')
+    weight = data.get('weight', 0)
+    reps = data.get('reps', 10)
+    sets = data.get('sets', 3)
+    total_count = data.get('total_count', 0)
+    
+    logger.info(f"記錄用戶 {student_id} 的運動數據: 類型={exercise_type}, 重量={weight}kg, 次數={reps}, 組數={sets}, 總計數={total_count}")
+    
+    try:
+        conn = get_db_connection()
+        if not conn:
+            logger.error("無法連接到數據庫")
+            return jsonify({'success': False, 'message': '數據庫連接失敗'}), 500
+            
+        cursor = conn.cursor(dictionary=True)
+        
+        # 獲取當前時間
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 插入運動記錄到 exercise_info 表
+        insert_query = """
+        INSERT INTO exercise_info 
+        (student_id, exercise_type, weight, reps, sets, timestamp, total_count)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        cursor.execute(insert_query, (
+            student_id, 
+            exercise_type, 
+            weight, 
+            reps, 
+            sets, 
+            current_time,
+            total_count
+        ))
+        
+        conn.commit()
+        logger.info(f"成功記錄用戶 {student_id} 的運動數據，影響行數: {cursor.rowcount}")
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': '運動記錄已保存'
+        })
+        
+    except Exception as e:
+        logger.error(f"記錄用戶運動數據時出錯: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500

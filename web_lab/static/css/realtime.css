@@ -832,14 +832,7 @@ body {
     overflow: hidden;
 }
 
-.hp-bar {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 15px;
-    background-color: rgba(0, 0, 0, 0.05);
-    padding: 10px;
-    border-radius: 8px;
-}
+
 
 .hp-label {
     font-size: 1rem;
@@ -913,19 +906,24 @@ body {
 }
 
 /* 確保怪物對話框在模型上方 */
-.monster-dialogue {
+element.style {
+    height: 100px;
     position: absolute;
-    bottom: 10px;
+    top: 200px;
     left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 14px;
-    max-width: 80%;
+    transform: translateX(-50%) translateY(0px);
+    background-color: rgb(255, 255, 255);
+    border-radius: 10px;
+    padding: 10px 15px;
+    box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 10px;
+    max-width: 200px;
     text-align: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 10;
+    font-size: 14px;
+    color: rgb(51, 51, 51);
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
 }
 
 .monster-dialogue:after {
@@ -1436,3 +1434,205 @@ body {
     font-size: 14px;
     color: var(--dark-color);
 }
+
+/* 添加到您的CSS文件中 */
+.shield-bar-fill {
+    background-color: #3498db;
+}
+
+
+
+.shield-settings {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+.shield-settings label {
+    margin-right: 5px;
+}
+
+.shield-settings input {
+    width: 60px;
+    margin-right: 10px;
+}
+
+
+/* 動態生成的通關通知樣式 */
+.level-complete-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.level-complete-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.level-complete-container {
+    background-color: var(--dark-color);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+    border: 2px solid var(--warning-color);
+    width: 90%;
+    max-width: 500px;
+    overflow: hidden;
+    transform: scale(0.9);
+    transition: transform 0.3s;
+    animation: modal-pop 0.5s forwards;
+}
+
+
+
+
+@keyframes modal-pop {
+    0% { transform: scale(0.9); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.level-complete-header {
+    background-color: var(--warning-color);
+    color: var(--dark-color);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.level-complete-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.level-complete-close {
+    font-size: 24px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.level-complete-close:hover {
+    transform: scale(1.2);
+}
+
+.level-complete-body {
+    padding: 20px;
+    color: var(--light-color);
+}
+
+.level-complete-animation {
+    text-align: center;
+    margin: 10px 0 20px;
+}
+
+.level-complete-icon {
+    font-size: 60px;
+    color: var(--warning-color);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.level-complete-info {
+    text-align: center;
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.exp-reward-container {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.exp-reward-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.exp-reward-item.total-exp {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.level-complete-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px 20px;
+}
+
+.level-complete-button {
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.level-complete-button.primary {
+    background-color: var(--warning-color);
+    color: var(--dark-color);
+}
+
+.level-complete-button.primary:hover {
+    background-color: #f39c12;
+    transform: translateY(-2px);
+}
+
+.level-complete-button.secondary {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--light-color);
+}
+
+.level-complete-button.secondary:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* 護盾和血量條樣式 */
+.hp-container {
+    margin-bottom: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    padding: 8px;
+}
+
+
+
+.hp-bar {
+    height: 20px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 5px 0;
+    position: relative;
+}
+
+
+
+

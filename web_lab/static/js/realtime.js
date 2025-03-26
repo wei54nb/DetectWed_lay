@@ -445,193 +445,459 @@ function loadMonsterModel() {
 
 // 更新怪物血量顯示
 function updateMonsterHP(hp) {
+    console.log(`更新怪物血量: ${hp}/${initialMonsterHP}`);
+    
+    // 獲取血量條和血量值元素
     const hpBarFill = document.getElementById('monster-hp-bar');
     const hpValue = document.getElementById('monster-hp');
-    const monsterCount = document.getElementById('monster-count');
     const maxHpValue = document.getElementById('monster-max-hp');
     
-    if (hpBarFill && hpValue) {
-        const percentage = (hp / initialMonsterHP) * 100;
-        hpBarFill.style.width = `${percentage}%`;
-        hpValue.textContent = hp;
-        if (maxHpValue) maxHpValue.textContent = initialMonsterHP;
+    if (!hpBarFill || !hpValue) {
+        console.error('找不到怪物血量顯示元素，嘗試創建');
+        createMonsterHPBar();
+        return updateMonsterHP(hp); // 重新調用以更新新創建的元素
     }
     
-    if (monsterCount) {
-        monsterCount.textContent = `關卡 ${currentLevel} 怪物`;  // 修改顯示文字
+    // 計算血量百分比
+    const percentage = (hp / initialMonsterHP) * 100;
+    
+    // 更新血量條寬度
+    hpBarFill.style.width = `${percentage}%`;
+    
+    // 更新血量數值
+    hpValue.textContent = Math.max(0, Math.floor(hp));
+    if (maxHpValue) maxHpValue.textContent = initialMonsterHP;
+    
+    // 根據血量百分比改變顏色
+    if (percentage < 20) {
+        hpBarFill.style.backgroundColor = '#e74c3c'; // 紅色
+    } else if (percentage < 50) {
+        hpBarFill.style.backgroundColor = '#f39c12'; // 橙色
+    } else {
+        hpBarFill.style.backgroundColor = '#2ecc71'; // 綠色
     }
     
-    // 根據血量顯示不同的怪物對話
-    if (hp <= initialMonsterHP * 0.75 && hp > initialMonsterHP * 0.5 && monsterHP > initialMonsterHP * 0.75) {
-        showMonsterDialogue('你的攻擊還不錯嘛，再加把勁！');
-    } else if (hp <= initialMonsterHP * 0.5 && hp > initialMonsterHP * 0.25 && monsterHP > initialMonsterHP * 0.5) {
-        showMonsterDialogue('唔...你的力量讓我感到威脅了...');
-    } else if (hp <= initialMonsterHP * 0.25 && hp > 0 && monsterHP > initialMonsterHP * 0.25) {
-        showMonsterDialogue('我快撐不住了...再堅持一下！');
-    }
-    
+    // 更新全局變量
     monsterHP = hp;
+}
+
+
+// 新增函數：創建怪物護盾條
+function createMonsterShieldBar() {
+    console.log('創建怪物護盾條');
+    
+    // 獲取怪物區域容器
+    const monsterArea = document.querySelector('.monster-area');
+    if (!monsterArea) {
+        console.error('找不到怪物區域容器');
+        return;
+    }
+    
+    // 檢查是否已存在護盾條
+    if (document.getElementById('monster-shield-bar')) {
+        console.log('護盾條已存在，跳過創建');
+        return;
+    }
+    
+    // 創建護盾條容器
+    const shieldContainer = document.createElement('div');
+    shieldContainer.className = 'hp-container';
+    shieldContainer.style.marginBottom = '10px';
+    shieldContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+    shieldContainer.style.borderRadius = '5px';
+    shieldContainer.style.padding = '8px';
+    
+    // 創建護盾標籤
+    const shieldLabel = document.createElement('div');
+    shieldLabel.className = 'hp-label';
+    shieldLabel.textContent = '怪物護盾:';
+    shieldLabel.style.fontSize = '14px';
+    shieldLabel.style.marginBottom = '5px';
+    shieldLabel.style.fontWeight = '600';
+    
+    // 創建護盾條
+    const shieldBar = document.createElement('div');
+    shieldBar.className = 'hp-bar';
+    shieldBar.style.height = '20px';
+    shieldBar.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+    shieldBar.style.borderRadius = '10px';
+    shieldBar.style.overflow = 'hidden';
+    shieldBar.style.margin = '5px 0';
+    shieldBar.style.position = 'relative';
+    
+    // 創建護盾條填充
+    const shieldBarFill = document.createElement('div');
+    shieldBarFill.className = 'hp-bar-fill shield-bar-fill';
+    shieldBarFill.id = 'monster-shield-bar';
+    shieldBarFill.style.height = '100%';
+    shieldBarFill.style.backgroundColor = '#3498db';
+    shieldBarFill.style.width = '100%';
+    shieldBarFill.style.transition = 'width 0.3s ease';
+    
+    // 創建護盾值顯示
+    const shieldValue = document.createElement('div');
+    shieldValue.className = 'hp-value';
+    shieldValue.style.fontSize = '14px';
+    shieldValue.style.textAlign = 'right';
+    shieldValue.style.color = '#ecf0f1';
+    shieldValue.innerHTML = '<span id="monster-shield">0</span>/<span id="monster-max-shield">0</span>';
+    
+    // 組裝護盾條
+    shieldBar.appendChild(shieldBarFill);
+    shieldContainer.appendChild(shieldLabel);
+    shieldContainer.appendChild(shieldBar);
+    shieldContainer.appendChild(shieldValue);
+    
+    // 獲取血量條容器
+    const hpContainer = document.querySelector('.monster-area .hp-container');
+    
+    // 將護盾條添加到血量條之後
+    if (hpContainer) {
+        hpContainer.parentNode.insertBefore(shieldContainer, hpContainer.nextSibling);
+    } else {
+        // 如果找不到血量條，則添加到怪物區域的最前面
+        if (monsterArea.firstChild) {
+            monsterArea.insertBefore(shieldContainer, monsterArea.firstChild);
+        } else {
+            monsterArea.appendChild(shieldContainer);
+        }
+    }
+    
+    // 如果沒有護盾，則隱藏護盾條
+    if (initialMonsterShield <= 0) {
+        shieldContainer.style.display = 'none';
+    }
+    
+    console.log('怪物護盾條創建完成');
 }
 
 // 更新怪物護盾顯示
 function updateMonsterShield(shield) {
+    console.log(`更新怪物護盾: ${shield}/${initialMonsterShield}`);
+    
     const shieldBarFill = document.getElementById('monster-shield-bar');
     const shieldValue = document.getElementById('monster-shield');
     const maxShieldValue = document.getElementById('monster-max-shield');
     
-    if (shieldBarFill && shieldValue) {
-        // 避免除以零錯誤
-        const percentage = initialMonsterShield > 0 ? (shield / initialMonsterShield) * 100 : 0;
-        shieldBarFill.style.width = `${percentage}%`;
-        shieldValue.textContent = shield;
-        if (maxShieldValue) maxShieldValue.textContent = initialMonsterShield;
+    if (!shieldBarFill || !shieldValue) {
+        console.error('找不到護盾顯示元素，嘗試創建');
+        createMonsterShieldBar();
+        return updateMonsterShield(shield); // 重新調用以更新新創建的元素
     }
     
+    // 避免除以零錯誤
+    const percentage = initialMonsterShield > 0 ? (shield / initialMonsterShield) * 100 : 0;
+    shieldBarFill.style.width = `${percentage}%`;
+    shieldValue.textContent = shield;
+    if (maxShieldValue) maxShieldValue.textContent = initialMonsterShield;
+    
+    // 根據是否有護盾顯示或隱藏護盾條
+    const shieldContainer = shieldBarFill.closest('.hp-container');
+    if (shieldContainer) {
+        if (initialMonsterShield > 0) {
+            shieldContainer.style.display = 'block';
+        } else {
+            shieldContainer.style.display = 'none';
+        }
+    }
+    
+    // 更新全局變量
     monsterShield = shield;
 }
 
+function createMonsterHPBar() {
+    console.log('創建怪物血量條');
+    
+    // 獲取怪物區域容器
+    const monsterArea = document.querySelector('.monster-area');
+    if (!monsterArea) {
+        console.error('找不到怪物區域容器');
+        return;
+    }
+    
+    // 檢查是否已存在血量條
+    if (document.getElementById('monster-hp-bar')) {
+        console.log('血量條已存在，跳過創建');
+        return;
+    }
+    
+    // 創建血量條容器
+    const hpContainer = document.createElement('div');
+    hpContainer.className = 'hp-container';
+    hpContainer.style.marginBottom = '10px';
+    hpContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+    hpContainer.style.borderRadius = '5px';
+    hpContainer.style.padding = '8px';
+    
+    // 創建血量標籤
+    const hpLabel = document.createElement('div');
+    hpLabel.className = 'hp-label';
+    hpLabel.textContent = '怪物血量:';
+    hpLabel.style.fontSize = '14px';
+    hpLabel.style.marginBottom = '5px';
+    hpLabel.style.fontWeight = '600';
+    
+    // 創建血量條
+    const hpBar = document.createElement('div');
+    hpBar.className = 'hp-bar';
+    hpBar.style.height = '20px';
+    hpBar.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+    hpBar.style.borderRadius = '10px';
+    hpBar.style.overflow = 'hidden';
+    hpBar.style.margin = '5px 0';
+    hpBar.style.position = 'relative';
+    
+    // 創建血量條填充
+    const hpBarFill = document.createElement('div');
+    hpBarFill.className = 'hp-bar-fill';
+    hpBarFill.id = 'monster-hp-bar';
+    hpBarFill.style.height = '100%';
+    hpBarFill.style.backgroundColor = '#2ecc71';
+    hpBarFill.style.width = '100%';
+    hpBarFill.style.transition = 'width 0.3s ease';
+    
+    // 創建血量值顯示
+    const hpValue = document.createElement('div');
+    hpValue.className = 'hp-value';
+    hpValue.style.fontSize = '14px';
+    hpValue.style.textAlign = 'right';
+    hpValue.style.color = '#ecf0f1';
+    hpValue.innerHTML = '<span id="monster-hp">100</span>/<span id="monster-max-hp">100</span>';
+    
+    // 組裝血量條
+    hpBar.appendChild(hpBarFill);
+    hpContainer.appendChild(hpLabel);
+    hpContainer.appendChild(hpBar);
+    hpContainer.appendChild(hpValue);
+    
+    // 將血量條添加到怪物區域的最前面
+    if (monsterArea.firstChild) {
+        monsterArea.insertBefore(hpContainer, monsterArea.firstChild);
+    } else {
+        monsterArea.appendChild(hpContainer);
+    }
+    
+    console.log('怪物血量條創建完成');
+}
+
+
 // 初始化護盾控件
 function initShieldControls() {
-    const shieldValueInput = document.getElementById('shield-value');
-    const shieldWeightInput = document.getElementById('shield-weight');
-    const applyShieldButton = document.getElementById('apply-shield');
+    console.log('初始化护盾控制');
     
-    if (applyShieldButton && shieldValueInput && shieldWeightInput) {
-        // 設置初始值
-        shieldValueInput.value = initialMonsterShield;
-        shieldWeightInput.value = shieldWeightFactor;
-        
-        // 添加應用按鈕事件
-        applyShieldButton.addEventListener('click', function() {
-            // 獲取用戶輸入的護盾值和重量係數
-            const newShieldValue = parseInt(shieldValueInput.value) || 0;
-            const newWeightFactor = parseFloat(shieldWeightInput.value) || 1;
-            
-            // 更新護盾值和重量係數
-            initialMonsterShield = newShieldValue;
-            monsterShield = newShieldValue;
-            shieldWeightFactor = newWeightFactor;
-            
-            // 更新護盾顯示
-            updateMonsterShield(monsterShield);
-            
-            // 顯示確認訊息
-            showMonsterDialogue(`護盾已設置為 ${monsterShield}，重量係數為 ${shieldWeightFactor}`);
-            
-            console.log(`護盾已設置為 ${monsterShield}，重量係數為 ${shieldWeightFactor}`);
-        });
+
+    
+    // 更新护盾显示
+    updateShieldDisplay();
+}
+
+// 更新护盾显示
+function updateShieldDisplay() {
+    console.log('更新護盾顯示');
+    
+    // 更新护盾值显示
+    const shieldValueElement = document.getElementById('shield-value');
+    if (shieldValueElement) {
+        shieldValueElement.textContent = initialMonsterShield;
+    } else {
+        console.error('找不到護盾值顯示元素');
+    }
+    
+    // 更新护盾权重显示
+    const shieldWeightElement = document.getElementById('shield-weight');
+    if (shieldWeightElement) {
+        shieldWeightElement.textContent = shieldWeightFactor.toFixed(1);
+    } else {
+        console.error('找不到護盾權重顯示元素');
     }
 }
 
 
-// 添加一個新函數來處理運動次數增加時減少怪物血量
-function decreaseMonsterHP(newCount) {
-    // 添加静态变量记录上一次的运动计数
-    if (typeof decreaseMonsterHP.lastCount === 'undefined') {
-        decreaseMonsterHP.lastCount = 0;
-    }
+// 新增函數：根據運動參數更新護盾值
+function updateShieldFromExerciseParams() {
+    // 获取用户输入的运动参数
+    const weightInput = document.getElementById('weight');
+    const repsInput = document.getElementById('reps');
+    const setsInput = document.getElementById('sets');
     
-    // 检查当前是否还有怪物需要击败
-    if (currentMonsterIndex >= totalMonsters) {
-        console.log('所有怪物已击败，忽略血量更新');
+    if (!weightInput || !repsInput || !setsInput) {
+        console.error('無法取得運動參數控件');
         return;
     }
     
-    // 確保當前關卡已初始化
-    if (currentLevel === null) {
-        console.log('關卡未初始化，初始化為第1關');
-        initLevel(1);
+    // 获取输入值
+    const weight = parseFloat(weightInput.value) || 0;
+    const reps = parseInt(repsInput.value) || 0;
+    const sets = parseInt(setsInput.value) || 0;
+    
+    console.log(`運動參數: 重量=${weight}kg, 次數=${reps}, 組數=${sets}`);
+    
+    // 计算护盾值 - 使用次数乘以组数作为护盾值
+    const newShieldValue = reps * sets;
+    
+    // 使用重量作为护盾重量系数 (限制在合理范围内)
+    // 如果重量为0，则使用1作为默认值
+    const newWeightFactor = weight > 0 ? Math.min(5, Math.max(0.1, weight / 20)) : 1;
+    
+    console.log(`根據運動參數計算: 护盾值=${newShieldValue}, 重量系数=${newWeightFactor.toFixed(2)}`);
+    
+    // 更新护盾值和重量系数
+    initialMonsterShield = newShieldValue;
+    monsterShield = newShieldValue;
+    shieldWeightFactor = newWeightFactor;
+    
+    // 更新护盾显示
+    updateMonsterShield(monsterShield);
+    updateShieldDisplay(); // 确保更新UI显示
+    
+    // 显示确认消息
+    if (newShieldValue > 0) {
+        showMonsterDialogue(`我獲得了 ${monsterShield} 點護盾！重量係數為 ${shieldWeightFactor.toFixed(1)}`);
+    } else {
+        showMonsterDialogue('我沒有護盾，直接攻擊我吧！');
+    }
+}
+
+
+
+// 添加一個新函數來處理運動次數增加時減少怪物血量
+function decreaseMonsterHP(count) {
+    // 靜態變量，記錄上次的計數
+    if (decreaseMonsterHP.lastCount === undefined) {
+        decreaseMonsterHP.lastCount = 0;
     }
     
-    console.log(`處理運動計數: ${newCount}, 上次計數: ${decreaseMonsterHP.lastCount}, 當前怪物血量: ${monsterHP}/${initialMonsterHP}, 關卡: ${currentLevel}`);
+    // 計算新增的計數
+    const increment = count - decreaseMonsterHP.lastCount;
+    decreaseMonsterHP.lastCount = count;
     
-    // 只有当新计数大于上一次记录的计数时才减少血量
-    if (newCount > decreaseMonsterHP.lastCount) {
-        console.log(`運動計數增加: ${decreaseMonsterHP.lastCount} -> ${newCount}`);
+    // 如果沒有新增計數，則不處理
+    if (increment <= 0) return;
+    
+    console.log(`減少怪物血量，新增計數: ${increment}`);
+    
+    // 先處理護盾
+    if (monsterShield > 0) {
+        // 護盾減少量 = 新增計數 * 護盾減少係數
+        const shieldDecrease = Math.min(monsterShield, increment);
+        monsterShield -= shieldDecrease;
         
-        // 每次运动减少的血量 - 根据关卡调整伤害值
-        let damagePerExercise = 10;
+        // 更新護盾顯示
+        updateMonsterShield(monsterShield);
         
-        // 根据关卡调整伤害值，使得高级关卡需要更多次数才能击败怪物
-        switch(currentLevel) {
-            case 1:
-                damagePerExercise = 20; // 第1關每次運動減少20點血量
-                break;
-            case 2:
-                damagePerExercise = 15; // 第2關每次運動減少15點血量
-                break;
-            case 3:
-                damagePerExercise = 12; // 第3關每次運動減少12點血量
-                break;
-            case 4:
-                damagePerExercise = 10; // 第4關每次運動減少10點血量
-                break;
-            case 5:
-                damagePerExercise = 8;  // 第5關每次運動減少8點血量
-                break;
-            default:
-                damagePerExercise = Math.max(5, 20 - (currentLevel - 1) * 3); // 更高關卡傷害更低
+        // 如果護盾被擊破，顯示提示
+        if (monsterShield === 0) {
+            showMonsterDialogue('我的護盾被擊破了！');
         }
         
-        // 计算新的血量 (只减一次)
-        let newHP = monsterHP - damagePerExercise;
-        
-        // 确保血量不会低于0
-        newHP = Math.max(0, newHP);
-        
-        console.log(`減少怪物血量: ${monsterHP} -> ${newHP} (傷害: ${damagePerExercise})`);
-        
-        // 更新怪物血量
-        updateMonsterHP(newHP);
-        
-        // 如果怪物血量为0，处理怪物被击败的逻辑
-        if (newHP <= 0 && !decreaseMonsterHP.monsterDefeating) {
-            // 设置标志，防止重复调用
-            decreaseMonsterHP.monsterDefeating = true;
-            
-            // 延迟一小段时间后调用monsterDefeated，确保不会因为连续的exercise_count事件导致多次调用
-            setTimeout(function() {
-                monsterDefeated(); // 使用统一的函数
-                decreaseMonsterHP.monsterDefeating = false;
-            }, 100);
+        // 如果護盾吸收了所有傷害，則不減少血量
+        if (shieldDecrease >= increment) {
+            return;
         }
         
-        // 更新上一次的计数
-        decreaseMonsterHP.lastCount = newCount;
+        // 計算剩餘傷害
+        const remainingDamage = increment - shieldDecrease;
+        
+        // 減少怪物血量
+        monsterHP = Math.max(0, monsterHP - remainingDamage);
     } else {
-        console.log(`忽略重複的運動計數: ${newCount}`);
+        // 沒有護盾，直接減少血量
+        monsterHP = Math.max(0, monsterHP - increment);
+    }
+    
+    // 更新血量顯示
+    updateMonsterHP(monsterHP);
+    
+    // 檢查怪物是否被擊敗
+    if (monsterHP <= 0) {
+        // 怪物被擊敗
+        console.log('怪物被擊敗！');
+        
+        // 調用怪物被擊敗函數
+        monsterDefeated();
+    } else if (monsterHP < initialMonsterHP * 0.3) {
+        // 血量低於30%，顯示快要被擊敗的對話
+        showMonsterDialogue('我快撐不住了...');
+    } else if (monsterHP < initialMonsterHP * 0.5) {
+        // 血量低於50%，顯示受傷的對話
+        showMonsterDialogue('好痛！你很強！');
     }
 }
 
 
 // 顯示怪物對話
-function showMonsterDialogue(text, duration = 4000) {
-    // 檢查是否已存在對話框，如果有則移除
-    const existingDialogue = document.querySelector('.monster-dialogue');
-    if (existingDialogue) {
-        existingDialogue.remove();
+function showMonsterDialogue(text) {
+    console.log('显示怪物对话:', text);
+    
+    // 确保样式已添加
+    addMonsterDialogueStyle();
+    
+    // 获取怪物区域
+    const monsterArea = document.querySelector('.monster-area');
+    if (!monsterArea) {
+        console.error('找不到怪物区域');
+        return;
     }
     
-    // 創建新的對話框
-    const dialogue = document.createElement('div');
-    dialogue.className = 'monster-dialogue';
+    // 检查是否已存在对话框
+    let dialogue = monsterArea.querySelector('.monster-dialogue');
+    
+    // 如果不存在或者有问题，创建新的对话框
+    if (!dialogue || dialogue.style.top === '-60px') {
+        // 如果存在旧的对话框，先移除
+        if (dialogue) {
+            monsterArea.removeChild(dialogue);
+        }
+        
+        dialogue = document.createElement('div');
+        dialogue.className = 'monster-dialogue';
+        
+        // 设置明确的样式，避免被其他CSS覆盖
+        dialogue.style.position = 'absolute';
+        dialogue.style.top = '20px'; // 调整位置，避免太高
+        dialogue.style.left = '50%';
+        dialogue.style.transform = 'translateX(-50%)';
+        dialogue.style.backgroundColor = '#fff';
+        dialogue.style.borderRadius = '10px';
+        dialogue.style.padding = '10px 15px';
+        dialogue.style.boxShadow = '0 3px 10px rgba(0, 0, 0, 0.2)';
+        dialogue.style.maxWidth = '200px';
+        dialogue.style.textAlign = 'center';
+        dialogue.style.fontSize = '14px';
+        dialogue.style.color = '#333';
+        dialogue.style.zIndex = '100';
+        dialogue.style.opacity = '0';
+        dialogue.style.transition = 'opacity 0.3s, transform 0.3s';
+        dialogue.style.pointerEvents = 'none';
+        
+        // 添加伪元素的替代方案
+        const arrow = document.createElement('div');
+        arrow.style.position = 'absolute';
+        arrow.style.bottom = '-10px';
+        arrow.style.left = '50%';
+        arrow.style.transform = 'translateX(-50%)';
+        arrow.style.borderWidth = '10px 10px 0';
+        arrow.style.borderStyle = 'solid';
+        arrow.style.borderColor = '#fff transparent transparent';
+        
+        dialogue.appendChild(arrow);
+        monsterArea.appendChild(dialogue);
+    }
+    
+    // 设置对话内容
     dialogue.textContent = text;
     
-    // 添加到怪物容器中
-    const monsterContainer = document.getElementById('monster-scene').parentElement;
-    if (monsterContainer) {
-        monsterContainer.appendChild(dialogue);
-        
-        // 設置定時器，自動移除對話框
-        setTimeout(() => {
-            dialogue.classList.add('fade-out');
-            setTimeout(() => {
-                if (dialogue.parentNode) {
-                    dialogue.parentNode.removeChild(dialogue);
-                }
-            }, 500);
-        }, duration);
-    }
+    // 显示对话框
+    setTimeout(() => {
+        dialogue.style.opacity = '1';
+        dialogue.style.transform = 'translateX(-50%) translateY(-5px)';
+    }, 10);
+    
+    // 5秒后隐藏对话框
+    setTimeout(() => {
+        dialogue.style.opacity = '0';
+        dialogue.style.transform = 'translateX(-50%) translateY(0)';
+    }, 5000);
 }
 
 
@@ -830,6 +1096,10 @@ function resetCount() {
     monsterHP = initialMonsterHP;
     updateMonsterHP(monsterHP);
     
+    // 重置怪物護盾 - 恢復到初始護盾值
+    monsterShield = initialMonsterShield;
+    updateMonsterShield(monsterShield);
+    
     // 重置 decreaseMonsterHP 的静态变量
     decreaseMonsterHP.lastCount = 0;
     
@@ -837,6 +1107,8 @@ function resetCount() {
     if (socket) {
         socket.emit('reset_count');
     }
+    
+    console.log(`重置完成，怪物血量: ${monsterHP}/${initialMonsterHP}, 護盾: ${monsterShield}/${initialMonsterShield}`);
 }
 
 
@@ -867,230 +1139,490 @@ function showCompletionMessage() {
     stopDetection();
 }
 
-// 怪物被擊敗
+
+// 怪物被擊敗時的處理函數
 function monsterDefeated() {
     console.log('怪物被擊敗！');
     
-    // 顯示怪物被擊敗訊息
-    showMonsterDialogue('啊！我被擊敗了...', 3000);
+    // 停止偵測
+    stopDetection();
     
-    // 重置 decreaseMonsterHP 的静态变量
-    decreaseMonsterHP.lastCount = 0;
+    // 計算經驗值獎勵 (基於護盾值和重量係數)
+    let expReward = 50; // 基礎經驗值
     
-    // 延遲後處理關卡完成
-    setTimeout(function() {
-        // 增加怪物索引
-        currentMonsterIndex++;
-        
-        console.log(`已擊敗怪物，當前索引: ${currentMonsterIndex}，總數: ${totalMonsters}`);
-        
-        // 由於每關只有1個怪物，擊敗後直接顯示關卡完成訊息
-        showLevelCompleteMessage();
-    }, 3000);
+    if (initialMonsterShield > 0) {
+        // 如果怪物有護盾，增加經驗值獎勵
+        expReward += Math.round(initialMonsterShield * shieldWeightFactor);
+        console.log(`基於護盾計算的額外經驗值: ${Math.round(initialMonsterShield * shieldWeightFactor)}`);
+    }
+    
+    console.log(`總經驗值獎勵: ${expReward}`);
+    
+    // 顯示通關消息
+    showNotification(`恭喜！你擊敗了怪物，獲得 ${expReward} 經驗值！`, 'success');
+    
+    // 顯示怪物對話
+    showMonsterDialogue('啊！我被打敗了...');
+    
+    // 顯示關卡完成訊息 (包含下一關選項)
+    showLevelCompleteMessage();
+    
+    // 注意：不再自動發送關卡完成數據，而是在用戶選擇後發送
 }
+
 
 // 顯示關卡完成訊息
 function showLevelCompleteMessage() {
-    console.log('關卡完成！');
-    console.log(`確認關卡完成條件: 當前怪物索引 ${currentMonsterIndex}, 總怪物數 ${totalMonsters}`);
+    console.log('顯示關卡完成訊息');
     
-    // 再次確認是否真的完成了所有怪物
-    if (currentMonsterIndex < totalMonsters) {
-        console.error('關卡完成條件未滿足，但嘗試顯示完成訊息');
-        return;
+    // 計算經驗值獎勵 (基於護盾值和重量係數)
+    let expReward = 50; // 基礎經驗值
+    let shieldBonus = 0;
+    
+    if (initialMonsterShield > 0) {
+        // 如果怪物有護盾，增加經驗值獎勵
+        shieldBonus = Math.round(initialMonsterShield * shieldWeightFactor);
+        console.log(`護盾經驗值加成: ${shieldBonus} (初始護盾: ${initialMonsterShield}, 重量係數: ${shieldWeightFactor})`);
+        expReward += shieldBonus;
     }
     
-    debugGameState();  // 添加調試信息
+    console.log(`關卡 ${currentLevel} 完成，獲得經驗值: ${expReward} (基礎: 50, 護盾加成: ${shieldBonus})`);
     
-    // 移除可能已存在的關卡完成訊息
-    const existingMessage = document.querySelector('.level-complete-message');
-    if (existingMessage) {
-        existingMessage.remove();
-    }
-    
-    // 創建關卡完成訊息元素
-    const levelCompleteMessage = document.createElement('div');
-    levelCompleteMessage.className = 'level-complete-message';
-    levelCompleteMessage.innerHTML = `
+    // 創建通關通知元素
+    const notification = document.createElement('div');
+    notification.className = 'level-complete-notification';
+    notification.innerHTML = `
         <div class="level-complete-content">
-            <h2>恭喜完成關卡！</h2>
-            <p>你已經擊敗了所有怪物</p>
-            <div class="level-rewards">
-                <div class="reward-item">
-                    <span class="reward-value">+100</span>
-                    <span class="reward-label">經驗值</span>
-                </div>
-                <div class="reward-item">
-                    <span class="reward-value">+50</span>
-                    <span class="reward-label">金幣</span>
-                </div>
-            </div>
+            <h2>關卡完成！</h2>
+            <p>恭喜你擊敗了怪物！</p>
+            <p>獲得經驗值: ${expReward}</p>
             <div class="level-complete-buttons">
-                <button class="button accent" id="next-level-btn">下一關卡</button>
-                <button class="button" id="return-map-btn">返回地圖</button>
+                <button id="next-level-btn">下一關</button>
+                <button id="continue-btn">返回</button>
             </div>
         </div>
     `;
     
-    // 添加到頁面
-    document.body.appendChild(levelCompleteMessage);
-
-    let expReward = 50;
-    switch(currentLevel) {
-        case 1: expReward = 50; break;
-        case 2: expReward = 100; break;
-        case 3: expReward = 150; break;
-        case 4: expReward = 200; break;
-        case 5: expReward = 250; break;
-        default: expReward = 50 + (currentLevel - 1) * 50;
-    }
-
-    console.log(`準備發送關卡完成請求，關卡: ${currentLevel}, 經驗值: ${expReward}`);
-    updateLevelCompletion(currentLevel, expReward);
+    // 設置樣式
+    notification.style.position = 'fixed';
+    notification.style.top = '0';
+    notification.style.left = '0';
+    notification.style.width = '100%';
+    notification.style.height = '100%';
+    notification.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    notification.style.display = 'flex';
+    notification.style.justifyContent = 'center';
+    notification.style.alignItems = 'center';
+    notification.style.zIndex = '1000';
+    notification.style.opacity = '0';
+    notification.style.transition = 'opacity 0.5s';
     
-    // 添加按鈕事件
-    document.getElementById('next-level-btn').addEventListener('click', function() {
-        // 關閉訊息
-        levelCompleteMessage.remove();
-        
-        // 進入下一關
-        const nextLevel = currentLevel + 1;
-        initLevel(nextLevel);
-    });
-    
-    // 顯示關卡完成訊息
-    const levelCompleteMsg = document.getElementById('level-complete-message');
-    if (levelCompleteMsg) {
-        levelCompleteMsg.classList.add('active');
-        
-        // 設置關卡完成訊息內容
-        const levelTitle = document.querySelector('.level-title');
-        const levelName = levelTitle ? levelTitle.textContent : `關卡 ${currentLevel}`;
-        
-        const levelCompleteTitle = document.getElementById('level-complete-title');
-        if (levelCompleteTitle) {
-            levelCompleteTitle.textContent = `${levelName} 完成！`;
-        }
-        
-        // 計算獲得的經驗值 (根據關卡難度)
-        let expReward = 50;
-        switch(currentLevel) {
-            case 1: expReward = 50; break;
-            case 2: expReward = 100; break;
-            case 3: expReward = 150; break;
-            case 4: expReward = 200; break;
-            case 5: expReward = 250; break;
-            default: expReward = 50 + (currentLevel - 1) * 50;
-        }
-        
-        const expRewardText = document.getElementById('exp-reward');
-        if (expRewardText) {
-            expRewardText.textContent = expReward;
-        }
-        
-        // 發送關卡完成請求到伺服器
-        updateLevelCompletion(currentLevel, expReward);
+    // 設置內容樣式
+    const content = notification.querySelector('.level-complete-content');
+    if (content) {
+        content.style.backgroundColor = '#fff';
+        content.style.borderRadius = '10px';
+        content.style.padding = '20px 30px';
+        content.style.textAlign = 'center';
+        content.style.maxWidth = '400px';
+        content.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
     }
-
-    // 確保按鈕可點擊 - 修改樣式
-    const buttonsContainer = levelCompleteMessage.querySelector('.level-complete-buttons');
+    
+    // 設置按鈕容器樣式
+    const buttonsContainer = notification.querySelector('.level-complete-buttons');
     if (buttonsContainer) {
-        buttonsContainer.style.position = 'relative';
-        buttonsContainer.style.zIndex = '1100'; // 確保按鈕在最上層
+        buttonsContainer.style.display = 'flex';
+        buttonsContainer.style.justifyContent = 'center';
+        buttonsContainer.style.gap = '10px';
+        buttonsContainer.style.marginTop = '15px';
     }
     
-    // 直接使用事件委托处理按钮点击
-    levelCompleteMessage.addEventListener('click', function(event) {
-        // 下一关按钮
-        if (event.target.id === 'next-level-btn' || event.target.closest('#next-level-btn')) {
-            console.log('進入下一關按鈕被點擊');
-            
-            // 添加視覺反饋
-            const nextLevelBtn = event.target.id === 'next-level-btn' ? event.target : event.target.closest('#next-level-btn');
-            nextLevelBtn.textContent = '載入中...';
-            nextLevelBtn.disabled = true;
-            
-            // 移除彈窗
-            levelCompleteMessage.remove();
-            
-            // 停止偵測
-            if (typeof stopDetection === 'function') {
-                stopDetection();
+    // 設置下一關按鈕樣式
+    const nextLevelButton = notification.querySelector('#next-level-btn');
+    if (nextLevelButton) {
+        nextLevelButton.style.backgroundColor = '#3498db';
+        nextLevelButton.style.color = 'white';
+        nextLevelButton.style.border = 'none';
+        nextLevelButton.style.padding = '10px 20px';
+        nextLevelButton.style.borderRadius = '5px';
+        nextLevelButton.style.cursor = 'pointer';
+        nextLevelButton.style.fontSize = '16px';
+        
+        // 添加下一關按鈕點擊事件
+        nextLevelButton.addEventListener('click', function() {
+            // 先發送關卡完成數據到伺服器
+            if (currentLevel) {
+                // 確保在這裡發送數據
+                sendLevelCompletionToServer(currentLevel, expReward);
+                console.log(`已發送關卡 ${currentLevel} 完成數據，經驗值: ${expReward}`);
             }
             
-            // 發送關卡完成事件
-            if (socket && socket.connected) {
-                socket.emit('level_complete', {
-                    level: currentLevel,
-                    exercise_type: currentExerciseType,
-                    count: exerciseCounter
-                });
-            }
+            // 淡出通知
+            notification.style.opacity = '0';
             
-            // 進入下一關
-            const nextLevel = currentLevel + 1;
-            console.log('準備進入下一關：', nextLevel);
-            
-            // 初始化下一關 - 這會重置所有必要的變數
-            setTimeout(() => {
-                initLevel(nextLevel);
+            // 移除通知
+            setTimeout(function() {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
                 
-                // 確保在關卡初始化後重置運動計數
-                exerciseCounter = 0;
-                updateExerciseCount();
-                
-                // 延遲一段時間後自動開始偵測
-                setTimeout(() => {
-                    startDetection();
-                }, 1000);
+                // 進入下一關
+                const nextLevel = currentLevel + 1;
+                console.log(`準備進入下一關: ${nextLevel}`);
+                loadLevel(nextLevel);
             }, 500);
-        }
+        });
+    }
+    
+    // 設置返回按鈕樣式
+    const continueButton = notification.querySelector('#continue-btn');
+    if (continueButton) {
+        continueButton.style.backgroundColor = '#2ecc71';
+        continueButton.style.color = 'white';
+        continueButton.style.border = 'none';
+        continueButton.style.padding = '10px 20px';
+        continueButton.style.borderRadius = '5px';
+        continueButton.style.cursor = 'pointer';
+        continueButton.style.fontSize = '16px';
         
-        // 返回地图按钮
-        if (event.target.id === 'return-map-btn' || event.target.closest('#return-map-btn')) {
-            console.log('返回地圖按鈕被點擊');
-            
-            // 添加視覺反饋
-            const returnMapBtn = event.target.id === 'return-map-btn' ? event.target : event.target.closest('#return-map-btn');
-            returnMapBtn.textContent = '跳轉中...';
-            returnMapBtn.disabled = true;
-            
-            // 移除彈窗
-            levelCompleteMessage.remove();
-            
-            // 停止偵測
-            if (typeof stopDetection === 'function') {
-                stopDetection();
+        // 添加返回按鈕點擊事件
+        continueButton.addEventListener('click', function() {
+            // 先發送關卡完成數據到伺服器
+            if (currentLevel) {
+                // 確保在這裡發送數據
+                sendLevelCompletionToServer(currentLevel, expReward);
+                console.log(`已發送關卡 ${currentLevel} 完成數據，經驗值: ${expReward}`);
             }
             
-            // 發送關卡完成事件
-            if (socket && socket.connected) {
-                socket.emit('level_complete', {
-                    level: currentLevel,
-                    exercise_type: currentExerciseType,
-                    count: exerciseCounter
+            // 淡出通知
+            notification.style.opacity = '0';
+            
+            // 移除通知
+            setTimeout(function() {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+                
+                // 重置怪物
+                resetMonster();
+            }, 500);
+        });
+    }
+    
+    // 添加到頁面
+    document.body.appendChild(notification);
+    
+    // 淡入通知
+    setTimeout(function() {
+        notification.style.opacity = '1';
+    }, 10);
+    
+    // 同時顯示通知訊息
+    showNotification(`關卡 ${currentLevel} 完成！獲得 ${expReward} 經驗值`, 'success');
+}
+
+
+// 加載指定關卡
+function loadLevel(levelId) {
+    console.log(`加載關卡: ${levelId}`);
+    
+    // 更新當前關卡
+    currentLevel = levelId;
+    
+    // 顯示加載中訊息
+    showNotification(`正在加載關卡 ${levelId}...`, 'info');
+    
+    // 重置運動計數器
+    exerciseCounter = 0;
+    decreaseMonsterHP.lastCount = 0;
+    
+    // 更新UI顯示
+    updateLevelDisplay(levelId);
+    
+    // 根據關卡難度設置怪物屬性
+    const difficulty = Math.min(2, Math.max(0.5, 1 + (levelId - 1) * 0.1));
+    console.log(`關卡 ${levelId} 難度係數: ${difficulty.toFixed(2)}`);
+    
+    // 設置怪物血量 (隨關卡增加)
+    initialMonsterHP = Math.round(100 * difficulty);
+    monsterHP = initialMonsterHP;
+    
+    // 獲取用戶設定的運動參數
+    const weightInput = document.getElementById('weight');
+    const repsInput = document.getElementById('reps');
+    const setsInput = document.getElementById('sets');
+    
+    if (weightInput && repsInput && setsInput) {
+        // 獲取輸入值
+        const weight = parseFloat(weightInput.value) || 0;
+        const reps = parseInt(repsInput.value) || 0;
+        const sets = parseInt(setsInput.value) || 0;
+        
+        // 計算護盾值 - 使用次數乘以組數作為護盾值
+        initialMonsterShield = reps * sets;
+        
+        // 使用重量作為護盾重量係數 (限制在合理範圍內)
+        shieldWeightFactor = weight > 0 ? Math.min(5, Math.max(0.1, weight / 20)) : 1;
+    } else {
+        // 如果找不到輸入控件，使用默認值
+        initialMonsterShield = 10 * levelId;
+        shieldWeightFactor = 0.1 * levelId;
+    }
+    
+    // 設置怪物護盾
+    monsterShield = initialMonsterShield;
+    
+    // 更新怪物顯示
+    updateMonsterHP(monsterHP);
+    updateMonsterShield(monsterShield);
+    
+    // 更新護盾顯示
+    updateShieldDisplay();
+    
+    // 重置剩餘組數
+    if (setsInput) {
+        remainingSets = parseInt(setsInput.value) || 3;
+    } else {
+        remainingSets = 3;
+    }
+    
+    // 更新剩餘組數顯示
+    updateRemainingSetsDisplay();
+    
+    // 顯示關卡開始訊息
+    showNotification(`關卡 ${levelId} 開始！`, 'success');
+    
+    // 顯示怪物對話
+    if (levelId === 1) {
+        showMonsterDialogue('我是第一關的怪物，準備接受挑戰吧！');
+    } else {
+        showMonsterDialogue(`我是第 ${levelId} 關的怪物，比上一關更強！`);
+    }
+    
+    // 開始偵測
+    startDetection();
+}
+
+
+
+function updateRemainingSetsDisplay() {
+    if (remainingSetsDisplay) {
+        remainingSetsDisplay.textContent = remainingSets;
+    } else {
+        console.error('找不到剩餘組數顯示元素');
+        // 嘗試重新獲取元素
+        remainingSetsDisplay = document.getElementById('remaining-sets') || 
+                              document.querySelector('.remaining-sets');
+        if (remainingSetsDisplay) {
+            remainingSetsDisplay.textContent = remainingSets;
+        }
+    }
+}
+
+
+
+
+
+
+function initMonsterSystem() {
+    console.log('初始化怪物系統...');
+    
+    // 初始化怪物模型
+    loadMonsterModel();
+    
+    // 初始化護盾控件
+    initShieldControls();
+    
+    // 初始化怪物血量顯示
+    updateMonsterHP(monsterHP);
+    
+    // 初始化怪物護盾顯示
+    updateMonsterShield(monsterShield);
+    
+    // 初始化第一關
+    initLevel(1);
+    
+    console.log('怪物系統初始化完成');
+}
+
+
+// 發送關卡完成數據到伺服器
+function sendLevelCompletionToServer(levelId, expReward) {
+    console.log(`發送關卡完成數據: 關卡 ${levelId}, 經驗值 ${expReward}, 初始護盾 ${initialMonsterShield}, 重量係數 ${shieldWeightFactor}`);
+
+    // 獲取用戶ID，如果沒有則使用默認值
+    const userId = document.getElementById('user-id') ? 
+                  document.getElementById('user-id').value : 
+                  (document.getElementById('student-id') ? 
+                   document.getElementById('student-id').value : 'C111151146');
+    
+    console.log(`用戶ID: ${userId}`);
+
+    // 獲取用戶設定的重量和組數
+    const weight = document.getElementById('weight') ? 
+                  parseInt(document.getElementById('weight').value) || 0 : 0;
+
+    const reps = document.getElementById('reps') ? 
+                parseInt(document.getElementById('reps').value) || 10 : 10;
+
+    const sets = document.getElementById('sets') ? 
+               parseInt(document.getElementById('sets').value) || 3 : 3;
+    
+    // 計算已完成的組數
+    const completedSets = remainingSets !== undefined ? (sets - remainingSets) : 0;
+    
+    console.log(`運動參數: 重量=${weight}kg, 次數=${reps}, 組數=${sets}, 已完成組數=${completedSets}`);
+    
+    // 發送請求到後端
+    fetch('/api/game/complete_level', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            level_id: levelId,
+            exp_reward: expReward,
+            exercise_type: currentExerciseType || 'squat',
+            exercise_count: exerciseCounter || 0,
+            shield_value: initialMonsterShield,
+            shield_weight: shieldWeightFactor,
+            weight: weight,
+            reps: reps,
+            sets: sets,
+            completed_sets: completedSets
+        })
+    })
+    .then(response => {
+        console.log(`API響應狀態: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP錯誤! 狀態: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            console.log('關卡完成數據已保存:', data);
+            
+            // 顯示成功通知
+            showNotification(`關卡 ${levelId} 完成！獲得 ${expReward} 經驗值`, 'success');
+            
+            // 顯示成就通知（如果有）
+            if (data.new_achievements && data.new_achievements.length > 0) {
+                data.new_achievements.forEach(achievement => {
+                    showNotification(`獲得成就: ${achievement.name}`, 'achievement');
                 });
             }
             
-            // 跳轉到地圖頁面
-            window.location.href = '/game/map';
+            // 更新用戶進度顯示（如果有相關元素）
+            if (data.progress) {
+                updateUserProgress(data.progress);
+            }
+        } else {
+            console.error('關卡完成數據保存失敗:', data.message);
+            showNotification('關卡數據保存失敗: ' + data.message, 'error');
         }
-    });
-
-    document.getElementById('return-map-btn').addEventListener('click', function() {
-        // 關閉訊息
-        levelCompleteMessage.remove();
+    })
+    .catch(error => {
+        console.error('發送關卡完成請求時出錯:', error);
+        showNotification('網絡錯誤，無法保存關卡數據', 'error');
         
-        // 顯示地圖
-        const mapModal = document.getElementById('map-modal');
-        if (mapModal) {
-            mapModal.classList.add('active');
-        }
+        // 嘗試重新發送
+        setTimeout(() => {
+            console.log('嘗試重新發送關卡完成數據...');
+            retryLevelCompletion(userId, levelId, expReward);
+        }, 2000);
     });
-    
-    // 添加按鈕樣式
-    addLevelCompleteStyles();
 }
+
+
+// 更新用戶進度顯示
+function updateUserProgress(progress) {
+    console.log('更新用戶進度顯示:', progress);
+    
+    // 更新等級顯示
+    const levelDisplay = document.getElementById('user-level');
+    if (levelDisplay && progress.current_level) {
+        levelDisplay.textContent = progress.current_level;
+    }
+    
+    // 更新經驗值顯示
+    const expDisplay = document.getElementById('user-exp');
+    if (expDisplay && progress.total_exp) {
+        expDisplay.textContent = progress.total_exp;
+    }
+    
+    // 更新進度條
+    const progressBar = document.querySelector('.progress-bar-fill');
+    if (progressBar && progress.total_exp) {
+        // 假設每100經驗值為一個等級
+        const expPercentage = (progress.total_exp % 100) / 100 * 100;
+        progressBar.style.width = `${expPercentage}%`;
+    }
+}
+
+
+//用於在用戶完成所有設定的組數時記錄到資料庫
+function recordExerciseCompletion() {
+    console.log('記錄運動完成數據');
+    
+    // 獲取用戶ID
+    const userId = document.getElementById('user-id') ? 
+                  document.getElementById('user-id').value : 
+                  (document.getElementById('student-id') ? 
+                   document.getElementById('student-id').value : 'C111151146');
+    
+    console.log(`用戶ID: ${userId}`);
+    
+    // 獲取用戶設定的重量和組數
+    const weight = document.getElementById('weight') ? 
+                  parseInt(document.getElementById('weight').value) || 0 : 0;
+    
+    const reps = document.getElementById('reps') ? 
+                parseInt(document.getElementById('reps').value) || 10 : 10;
+    
+    const sets = document.getElementById('sets') ? 
+               parseInt(document.getElementById('sets').value) || 3 : 3;
+    
+    console.log(`運動參數: 重量=${weight}kg, 次數=${reps}, 組數=${sets}, 總計數=${exerciseCounter}`);
+    
+    // 發送請求到後端
+    fetch('/api/exercise/record', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            student_id: userId,
+            exercise_type: currentExerciseType || 'squat',
+            weight: weight,
+            reps: reps,
+            sets: sets,
+            total_count: exerciseCounter || 0
+        })
+    })
+    .then(response => {
+        console.log(`API響應狀態: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP錯誤! 狀態: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            console.log('運動完成數據已保存:', data);
+            showNotification('運動記錄已保存', 'success');
+        } else {
+            console.error('運動完成數據保存失敗:', data.message);
+            showNotification('運動記錄保存失敗: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('發送運動完成請求時出錯:', error);
+        showNotification('網絡錯誤，無法保存運動記錄', 'error');
+    });
+}
+
 
 // 添加關卡完成樣式
 function addLevelCompleteStyles() {
@@ -1203,219 +1735,229 @@ function addLevelCompleteStyles() {
 
 // 初始化關卡
 function initLevel(level) {
-    console.log(`初始化關卡: ${level}`);
+    console.log(`初始化關卡 ${level}`);
     
-    // 設置當前關卡
+    // 更新当前关卡
     currentLevel = level;
     
-    // 重置怪物索引
-    currentMonsterIndex = 0;
-    
-    // 設置關卡怪物數量 (每關只有1個怪物)
-    totalMonsters = 1;
-    
-    // 根據關卡設置怪物血量和難度
+    // 根据关卡设置怪物血量和护盾
     switch(level) {
         case 1:
-            initialMonsterHP = 100;
+            initialMonsterHP = 10;
+            initialMonsterShield = 0;
+            shieldWeightFactor = 0;
             break;
         case 2:
-            initialMonsterHP = 150;
+            initialMonsterHP = 15;
+            initialMonsterShield = 5;
+            shieldWeightFactor = 1;
             break;
         case 3:
-            initialMonsterHP = 200;
+            initialMonsterHP = 20;
+            initialMonsterShield = 10;
+            shieldWeightFactor = 1.5;
             break;
         case 4:
-            initialMonsterHP = 250;
+            initialMonsterHP = 25;
+            initialMonsterShield = 15;
+            shieldWeightFactor = 2;
             break;
         case 5:
-            initialMonsterHP = 300;
+            initialMonsterHP = 30;
+            initialMonsterShield = 20;
+            shieldWeightFactor = 2.5;
             break;
         default:
-            // 如果是未知關卡，設置默認值
-            initialMonsterHP = 100 + (level - 1) * 50;
+            // 超过5关的难度设置
+            initialMonsterHP = 30 + (level - 5) * 10;
+            initialMonsterShield = 20 + (level - 5) * 5;
+            shieldWeightFactor = 2.5 + (level - 5) * 0.5;
     }
     
-    // 重置當前怪物血量
+    // 重置当前怪物血量和护盾
     monsterHP = initialMonsterHP;
+    monsterShield = initialMonsterShield;
     
-    // 重置護盾值（初始為0，由玩家設定）
-    initialMonsterShield = 0;
-    monsterShield = 0;
-    shieldWeightFactor = 1;
-    
-    // 更新怪物血量和護盾顯示
+    // 更新UI显示
     updateMonsterHP(monsterHP);
     updateMonsterShield(monsterShield);
     
-    // 更新關卡顯示
-    updateLevelDisplay(level);
+    // 更新关卡显示
+    const levelDisplay = document.getElementById('current-level');
+    if (levelDisplay) {
+        levelDisplay.textContent = level;
+    }
     
-    // 高亮當前關卡
-    highlightCurrentLevel();
-    
-    // 重置運動計數
+    // 重置运动计数器
     exerciseCounter = 0;
+    decreaseMonsterHP.lastCount = 0;
     updateExerciseCount();
     
-    // 重置 decreaseMonsterHP 的靜態變量
-    decreaseMonsterHP.lastCount = 0;
+    // 显示关卡开始对话
+    showLevelStartMessage(level);
     
-    console.log(`關卡 ${level} 初始化完成，怪物血量: ${monsterHP}/${initialMonsterHP}，護盾: ${monsterShield}/${initialMonsterShield}`);
+}
+
+
+
+// 显示关卡开始信息
+function showLevelStartMessage(level) {
+    console.log(`顯示關卡 ${level} 开始信息`);
     
-    // 顯示關卡開始提示
-    showLevelStartNotification(level);
+    // 根据关卡显示不同的对话
+    let message = '';
+    switch(level) {
+        case 1:
+            message = '歡迎來到第一關！完成10個深蹲擊敗怪物吧！';
+            break;
+        case 2:
+            message = '第二關！這個怪物有護盾，需要更多運動才能打敗它！';
+            break;
+        case 3:
+            message = '第三關！怪物變得更強了，加油！';
+            break;
+        case 4:
+            message = '第四關！挑戰自我，堅持就是勝利！';
+            break;
+        case 5:
+            message = '第五關！最終挑戰，全力以赴吧！';
+            break;
+        default:
+            message = `挑戰關卡 ${level}！你已經超越了大多數人，繼續前進！`;
+    }
     
-    // 初始化護盾設置控件
-    initShieldControls();
+    // 显示怪物对话
+    showMonsterDialogue(message);
+    
+    // 移除了创建和显示 level-info 元素的代码
 }
 
 
 
 // 初始化頁面
 function initPage() {
-    // 初始化關卡
-    initLevel(1);
+    console.log('初始化页面');
     
-    // 隱藏載入畫面
-    const pageLoader = document.querySelector('.page-loader');
-    if (pageLoader) {
-        setTimeout(function() {
-            pageLoader.classList.add('fade-out');
-            setTimeout(function() {
-                pageLoader.style.display = 'none';
-            }, 500);
-        }, 1000);
-    }
+    // 初始化全局变量
+    currentLevel = 1;
+    initialMonsterHP = 10;
+    monsterHP = initialMonsterHP;
+    initialMonsterShield = 0;
+    monsterShield = initialMonsterShield;
+    shieldWeightFactor = 0;
+    exerciseCounter = 0;
+    lastQuality = 0;
+    isDetecting = false;
+    
+    // 初始化UI元素引用
+    initUIElements();
+    
+    // 初始化Socket连接
+    socket = initSocketConnection();
+    
+    // 初始化怪物血量显示
+    initMonsterHPDisplay();
+    
+    // 添加怪物对话框样式
+    addMonsterDialogueStyle();
+    
+    // 重新绑定按钮事件
+    rebindButtonEvents();
+    
+    console.log('页面初始化完成');
 }
 
 function debugGameState() {
-    console.log('===== 遊戲狀態調試 =====');
-    console.log(`當前關卡: ${currentLevel}`);
-    console.log(`當前怪物索引: ${currentMonsterIndex}`);
-    console.log(`總怪物數: ${totalMonsters}`);
-    console.log(`怪物血量: ${monsterHP}/${initialMonsterHP}`);
-    console.log(`運動計數: ${exerciseCounter}`);
-    console.log(`運動類型: ${currentExerciseType}`);
-    console.log('========================');
+    console.log('游戏状态:');
+    console.log('- 当前關卡:', currentLevel);
+    console.log('- 怪物血量:', monsterHP, '/', initialMonsterHP);
+    console.log('- 怪物护盾:', monsterShield, '/', initialMonsterShield);
+    console.log('- 护盾权重因子:', shieldWeightFactor);
+    console.log('- 运动计数:', exerciseCounter);
+    console.log('- 最后质量分数:', lastQuality);
+    console.log('- 当前运动类型:', currentExerciseType);
+    console.log('- 检测状态:', isDetecting ? '正在检测' : '未检测');
+    
+    // 检查Socket连接状态
+    if (socket) {
+        console.log('- Socket连接状态:', socket.connected ? '已连接' : '未连接');
+        console.log('- Socket ID:', socket.id);
+    } else {
+        console.log('- Socket未初始化');
+    }
+    
+    // 返回状态对象，方便在控制台查看
+    return {
+        currentLevel,
+        monsterHP,
+        initialMonsterHP,
+        monsterShield,
+        initialMonsterShield,
+        shieldWeightFactor,
+        exerciseCounter,
+        lastQuality,
+        currentExerciseType,
+        isDetecting,
+        socketConnected: socket ? socket.connected : false,
+        socketId: socket ? socket.id : null
+    };
 }
 
 
 // 添加怪物對話框樣式
 function addMonsterDialogueStyle() {
-    // 檢查是否已存在樣式
+    console.log('添加怪物对话框样式');
+    
+    // 检查是否已存在样式
     if (document.getElementById('monster-dialogue-style')) {
-        return;
+        console.log('怪物对话框样式已存在，移除旧样式');
+        const oldStyle = document.getElementById('monster-dialogue-style');
+        oldStyle.parentNode.removeChild(oldStyle);
     }
     
-    // 創建樣式元素
+    // 创建样式元素
     const style = document.createElement('style');
     style.id = 'monster-dialogue-style';
     style.textContent = `
         .monster-dialogue {
             position: absolute;
-            bottom: 80px;
+            top: -60px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            max-width: 80%;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 10px 15px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            max-width: 200px;
             text-align: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            z-index: 10;
-            animation: float 2s ease-in-out infinite;
+            font-size: 14px;
+            color: #333;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
         }
         
         .monster-dialogue:after {
             content: '';
             position: absolute;
-            bottom: -8px;
+            bottom: -10px;
             left: 50%;
             transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 8px solid rgba(255, 255, 255, 0.9);
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: #fff transparent transparent;
         }
         
-        @keyframes float {
-            0%, 100% { transform: translateX(-50%) translateY(0px); }
-            50% { transform: translateX(-50%) translateY(-5px); }
-        }
-        
-        .fade-out {
-            animation: fadeOut 0.5s forwards;
-        }
-        
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-        
-        .level-complete-message, .completion-message {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .level-complete-content, .completion-content {
-            background-color: white;
-            border-radius: 15px;
-            padding: 30px;
-            text-align: center;
-            max-width: 500px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-        
-        .level-rewards {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin: 20px 0;
-        }
-        
-        .reward-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            min-width: 100px;
-        }
-        
-        .reward-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-color);
-        }
-        
-        .reward-label {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-            margin-top: 5px;
-        }
-        
-        .level-complete-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 20px;
+        .monster-dialogue.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-5px);
         }
     `;
     
-    // 添加到頁面
+    // 添加到页面
     document.head.appendChild(style);
+    console.log('怪物对话框样式已添加');
 }
 
 
@@ -1481,10 +2023,14 @@ function updateExerciseCount() {
             remainingSetsDisplay.textContent = remainingSets;
         }
         
-        // 只有在非遊戲模式下才顯示完成訓練的通知
-        // 檢查是否在遊戲模式 - 通過檢查currentLevel是否有值
-        if (remainingSets === 0 && currentLevel === null) {
-            showCompletionMessage();
+        // 檢查是否完成所有組數
+        if (remainingSets === 0) {
+            // 只有在非遊戲模式下才顯示完成訓練的通知
+            if (currentLevel === null) {
+                showCompletionMessage();
+                // 記錄運動完成數據
+                recordExerciseCompletion();
+            }
         }
     }
 }
@@ -1795,12 +2341,80 @@ function requestAngleData() {
 
 
 function initMonsterHPDisplay() {
-    console.log('初始化怪物血量显示');
+    console.log('初始化怪物血量和護盾顯示');
     
-    // 使用现有的血量条元素，而不是创建新的
+    // 创建血量条
+    createMonsterHPBar();
+    
+    // 创建护盾条
+    createMonsterShieldBar();
+    
+    // 更新血量显示
     updateMonsterHP(monsterHP);
+    
+    // 更新护盾显示
+    updateMonsterShield(monsterShield);
+    
+    // 添加怪物对话框样式
+    addMonsterDialogueStyle();
+    
+    // 初始化护盾控制
+    initShieldControls();
+    
+    console.log('怪物血量和護盾顯示初始化完成');
 }
 
+
+function bindShieldUpdateEvents() {
+    console.log('绑定護盾更新事件');
+    
+    // 获取运动参数输入元素
+    const weightInput = document.getElementById('weight');
+    const repsInput = document.getElementById('reps');
+    const setsInput = document.getElementById('sets');
+    
+    // 绑定输入事件
+    if (weightInput) {
+        weightInput.addEventListener('change', updateShieldFromExerciseParams);
+    }
+    
+    if (repsInput) {
+        repsInput.addEventListener('change', updateShieldFromExerciseParams);
+    }
+    
+    if (setsInput) {
+        setsInput.addEventListener('change', updateShieldFromExerciseParams);
+    }
+    
+    // 查找更新按钮并绑定事件
+    const updateButton = document.querySelector('.update-shield-btn') || 
+                         document.getElementById('update-shield') ||
+                         document.querySelector('button[data-action="update-shield"]');
+    
+    if (updateButton) {
+        updateButton.addEventListener('click', updateShieldFromExerciseParams);
+    } else {
+        // 如果没有找到更新按钮，创建一个
+        const shieldControls = document.querySelector('.shield-controls');
+        if (shieldControls) {
+            const updateBtn = document.createElement('button');
+            updateBtn.className = 'update-shield-btn';
+            updateBtn.textContent = '更新護盾';
+            updateBtn.style.marginTop = '10px';
+            updateBtn.style.padding = '5px 10px';
+            updateBtn.style.backgroundColor = '#3498db';
+            updateBtn.style.color = '#fff';
+            updateBtn.style.border = 'none';
+            updateBtn.style.borderRadius = '5px';
+            updateBtn.style.cursor = 'pointer';
+            
+            updateBtn.addEventListener('click', updateShieldFromExerciseParams);
+            shieldControls.appendChild(updateBtn);
+        }
+    }
+    
+    console.log('護盾更新事件绑定完成');
+}
 
 // 初始化UI元素引用
 function initUIElements() {
@@ -1966,7 +2580,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化页面
     initPage();
+
+    // 使用延时确保DOM完全加载
+    setTimeout(function() {
+        // 初始化护盾系统
+        initShieldControls();
+        
+        // 绑定护盾更新事件
+        bindShieldUpdateEvents();
+        
+        // 初始化第一关
+        initLevel(1);
+        
+        // 尝试显示一个初始对话，测试对话框是否正常
+        showMonsterDialogue('准备好开始挑战了吗？');
+    }, 500);
     
+
     // 暴露全局函数，以便在控制台调试
     window.startDetection = startDetection;
     window.stopDetection = stopDetection;
@@ -1975,6 +2605,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showMonsterDialogue = showMonsterDialogue;
     window.initLevel = initLevel;
     window.debugGameState = debugGameState;
+    window.updateShieldFromExerciseParams = updateShieldFromExerciseParams;
     
     // 初始化 Socket.IO 連接 - 修改連接方式
     socket = io('/exercise', {
@@ -2521,7 +3152,7 @@ function sendStartDetectionRequest() {
     
     // 发送请求
     socket.emit('start_detection', requestData);
-    console.log('已发送开始检测请求，运动类型:', currentExerciseType, '关卡:', currentLevel);
+    console.log('已发送开始检测请求，运动类型:', currentExerciseType, '關卡:', currentLevel);
     
     // 设置超时检查 - 增加超时时间并改进处理逻辑
     setTimeout(function() {
@@ -2986,8 +3617,22 @@ function updateLevelCompletion(levelId, expReward) {
 
 // 添加重試函數
 function retryLevelCompletion(userId, levelId, expReward) {
-    console.log(`重試發送關卡完成請求: 用戶 ${userId}, 關卡 ${levelId}`);
+    console.log(`重試發送關卡完成數據: 用戶 ${userId}, 關卡 ${levelId}, 經驗值 ${expReward}`);
     
+    // 獲取用戶設定的重量和組數
+    const weight = document.getElementById('weight') ? 
+                  parseInt(document.getElementById('weight').value) || 0 : 0;
+
+    const reps = document.getElementById('reps') ? 
+                parseInt(document.getElementById('reps').value) || 10 : 10;
+
+    const sets = document.getElementById('sets') ? 
+               parseInt(document.getElementById('sets').value) || 3 : 3;
+    
+    // 計算已完成的組數
+    const completedSets = remainingSets !== undefined ? (sets - remainingSets) : 0;
+    
+    // 發送請求到後端
     fetch('/api/game/complete_level', {
         method: 'POST',
         headers: {
@@ -2999,42 +3644,164 @@ function retryLevelCompletion(userId, levelId, expReward) {
             exp_reward: expReward,
             exercise_type: currentExerciseType || 'squat',
             exercise_count: exerciseCounter || 0,
-            retry: true
+            shield_value: initialMonsterShield,
+            shield_weight: shieldWeightFactor,
+            weight: weight,
+            reps: reps,
+            sets: sets,
+            completed_sets: completedSets
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             console.log('重試成功: 關卡完成數據已保存');
-            showNotification(`關卡 ${levelId} 完成！獲得 ${expReward} 經驗值`, 'success');
+            showNotification('關卡數據已成功保存', 'success');
         } else {
             console.error('重試失敗: 關卡完成數據保存失敗');
             showNotification('關卡數據保存失敗，請稍後再試', 'error');
         }
     })
     .catch(error => {
-        console.error('重試請求錯誤:', error);
+        console.error('重試發送關卡完成請求時出錯:', error);
     });
 }
 
 
 // 添加通知函數
+// 顯示通知訊息
 function showNotification(message, type = 'info') {
-    console.log(`顯示通知: ${message}, 類型: ${type}`);
+    console.log(`顯示通知: ${message} (類型: ${type})`);
+    
+    // 檢查是否已存在通知容器
+    let notificationContainer = document.querySelector('.notification-container');
+    
+    // 如果不存在，則創建一個
+    if (!notificationContainer) {
+        notificationContainer = document.createElement('div');
+        notificationContainer.className = 'notification-container';
+        notificationContainer.style.position = 'fixed';
+        notificationContainer.style.top = '20px';
+        notificationContainer.style.right = '20px';
+        notificationContainer.style.zIndex = '9999';
+        document.body.appendChild(notificationContainer);
+    }
     
     // 創建通知元素
     const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
+    notification.className = `notification notification-${type}`;
     notification.textContent = message;
     
-    // 添加到頁面
-    document.body.appendChild(notification);
+    // 設置樣式
+    notification.style.backgroundColor = type === 'success' ? '#4CAF50' : 
+                                        type === 'error' ? '#f44336' : 
+                                        type === 'warning' ? '#ff9800' : '#2196F3';
+    notification.style.color = 'white';
+    notification.style.padding = '15px 20px';
+    notification.style.marginBottom = '10px';
+    notification.style.borderRadius = '5px';
+    notification.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+    notification.style.opacity = '0';
+    notification.style.transition = 'opacity 0.3s, transform 0.3s';
+    notification.style.transform = 'translateX(50px)';
     
-    // 設置自動消失
-    setTimeout(() => {
-        notification.classList.add('fade-out');
-        setTimeout(() => {
-            notification.remove();
-        }, 500);
-    }, 3000);
+    // 添加到容器
+    notificationContainer.appendChild(notification);
+    
+    // 淡入通知
+    setTimeout(function() {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // 5秒後淡出通知
+    setTimeout(function() {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(50px)';
+        
+        // 移除通知
+        setTimeout(function() {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
+}
+
+
+
+function initGameUI() {
+    console.log('初始化遊戲UI');
+    
+    // 獲取關卡顯示元素
+    const levelDisplay = document.getElementById('current-level');
+    if (levelDisplay) {
+        // 如果已設置當前關卡，則顯示
+        if (currentLevel) {
+            levelDisplay.textContent = currentLevel;
+        } else {
+            // 否則設置為第一關
+            currentLevel = 1;
+            levelDisplay.textContent = '1';
+        }
+    } else {
+        console.error('找不到關卡顯示元素');
+    }
+    
+    // 創建怪物血量條
+    createMonsterHPBar();
+    
+    // 創建怪物護盾條
+    createMonsterShieldBar();
+    
+    // 初始化護盾控件
+    initShieldControls();
+    
+    // 更新怪物血量和護盾顯示
+    updateMonsterHP(monsterHP);
+    updateMonsterShield(monsterShield);
+    
+    // 更新剩餘組數顯示
+    updateRemainingSetsDisplay();
+    
+    console.log('遊戲UI初始化完成');
+}
+
+
+function resetMonster() {
+    console.log('重置怪物');
+    
+    // 重置怪物血量
+    monsterHP = initialMonsterHP;
+    
+    // 重置怪物護盾
+    monsterShield = initialMonsterShield;
+    
+    // 更新顯示
+    updateMonsterHP(monsterHP);
+    updateMonsterShield(monsterShield);
+    
+    // 重置運動計數器
+    exerciseCounter = 0;
+    decreaseMonsterHP.lastCount = 0;
+    
+    // 更新運動計數顯示
+    updateExerciseCount(0);
+    
+    // 重置剩餘組數
+    const setsInput = document.getElementById('sets');
+    if (setsInput) {
+        remainingSets = parseInt(setsInput.value) || 3;
+    } else {
+        remainingSets = 3;
+    }
+    
+    // 更新剩餘組數顯示
+    updateRemainingSetsDisplay();
+    
+    // 顯示重置訊息
+    showNotification('怪物已重置', 'info');
+    
+    // 顯示怪物對話
+    showMonsterDialogue('我恢復了力量，再來挑戰吧！');
 }

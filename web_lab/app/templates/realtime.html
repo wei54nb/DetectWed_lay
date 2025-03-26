@@ -140,14 +140,24 @@
             
             <!-- 右側怪物區域 - 移動到這裡與視頻區域並排 -->
             <div class="monster-area">
-                <div class="hp-bar">
-                    <div class="hp-label">怪物血量</div>
-                    <div class="hp-bar-container">
+                <!-- 添加怪物血量條 -->
+                <div class="hp-container">
+                    <div class="hp-label">怪物血量:</div>
+                    <div class="hp-bar">
                         <div class="hp-bar-fill" id="monster-hp-bar"></div>
                     </div>
-                    <div class="hp-value" id="monster-hp">100/100</div>
-                    <div class="monster-count" id="monster-count">怪物 1/1</div>
+                    <div class="hp-value"><span id="monster-hp">100</span>/<span id="monster-max-hp">100</span></div>
                 </div>
+                
+                <!-- 護盾條 -->
+                <div class="hp-container">
+                    <div class="hp-label">怪物護盾:</div>
+                    <div class="hp-bar">
+                        <div class="hp-bar-fill shield-bar-fill" id="monster-shield-bar"></div>
+                    </div>
+                    <div class="hp-value"><span id="monster-shield">0</span>/<span id="monster-max-shield">0</span></div>
+                </div>
+
                 <div class="monster-container" id="monster-container">
                     <div class="monster-scene-container" id="monster-scene">
                         <!-- 3D怪物將由JavaScript渲染 -->
@@ -246,8 +256,6 @@
             <button class="export-button" id="export-excel">匯出數據</button>
         </div>
     </div>
-    
-    <!-- ... 其餘代碼保持不變 ... -->
     
     <!-- 地圖模態視窗 -->
     <div class="modal" id="map-modal">

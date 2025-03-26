@@ -20,7 +20,7 @@ def get_camera():
     with camera_lock:
         if camera is None:
             try:
-                camera = cv2.VideoCapture(1)
+                camera = cv2.VideoCapture(0)
                 if not camera.isOpened():
                     logger.error("无法打开摄像头")
                     return None
@@ -52,7 +52,7 @@ def capture_frames():
                 try:
                     if camera is not None:
                         camera.release()
-                    camera = cv2.VideoCapture(1)
+                    camera = cv2.VideoCapture(0)
                     if not camera.isOpened():
                         logger.error("无法重新打开摄像头")
                         time.sleep(1)
