@@ -70,7 +70,46 @@
             <div class="fitness-report" id="fitness-report">
                 <!-- 總覽 -->
                 <div class="report-overview">
-                    <!-- 原有內容保持不變 -->
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-dumbbell"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">總重量</div>
+                            <div class="stat-value" id="total-weight">0 kg</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">總卡路里</div>
+                            <div class="stat-value" id="total-calories">0 卡路里</div>
+                            <!-- 這裡會動態添加百分比顯示 -->
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">總訓練時間</div>
+                            <div class="stat-value" id="total-training-time">0 小時 0 分鐘</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">訓練頻率</div>
+                            <div class="stat-value" id="training-frequency">0 次/周</div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- 圖表區域 -->

@@ -218,8 +218,21 @@ def fitness_dashboard():
             GROUP BY DATE(timestamp)
             ORDER BY date
         """, (user_id,))
-        calories_trend = [row['daily_calories'] or 0 for row in cursor.fetchall()]
         
+        calories_result = cursor.fetchall()
+        logger.info(f"用戶 {user_id} 的熱量趨勢查詢結果: {calories_result}")
+
+        # 確保至少有一個數據點
+        if not calories_result:
+            logger.warning(f"用戶 {user_id} 沒有熱量消耗記錄，將使用默認值")
+            calories_trend = [0]  # 至少提供一個默認值
+        else:
+            calories_trend = [float(row['daily_calories'] or 0) for row in calories_result]
+        
+        logger.info(f"用戶 {user_id} 的熱量趨勢數據: {calories_trend}")
+        
+
+
         # 6. 計算肌肉群發展
         cursor.execute("""
             SELECT exercise_type, COUNT(*) as count
@@ -274,7 +287,8 @@ def fitness_dashboard():
         cursor.close()
         conn.close()
         
-        logger.info(f"成功獲取用戶 {user_id} 的健身數據")
+        # 返回結果前記錄
+        logger.info(f"成功獲取用戶 {user_id} 的健身數據，calories_trend={calories_trend}")
         
         return jsonify({
             'success': True,

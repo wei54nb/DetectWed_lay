@@ -60,14 +60,14 @@ function setupManualInput() {
 }
 
 
-// 获取健身报告数据
+// 取得健身報告數據
 async function loadFitnessReport(userId) {
     if (!userId) {
         throw new Error('未提供用戶ID');
     }
     
     console.log(`正在加載用戶 ${userId} 的健身報告`);
-    currentUserId = userId; // 這裡嘗試修改 currentUserId
+    currentUserId = userId;
     
     try {
         // 明確指定完整URL，避免相對路徑問題
@@ -95,13 +95,24 @@ async function loadFitnessReport(userId) {
             throw new Error(data.message || '獲取數據失敗');
         }
         
-        // 處理數據並更新UI
-        updateDashboardUI(data);
-        renderCharts(data);
-        renderExerciseStats(data.exercise_stats);
-        renderRecentExercises(data.recent_exercises);
+        // 確保數據格式正確
+        const processedData = {
+            ...data,
+            calories_trend: Array.isArray(data.calories_trend) ? data.calories_trend : [],
+            muscle_growth: data.muscle_growth || { arms: 0, chest: 0, core: 0, legs: 0, shoulders: 0 },
+            exercise_stats: Array.isArray(data.exercise_stats) ? data.exercise_stats : [],
+            recent_exercises: Array.isArray(data.recent_exercises) ? data.recent_exercises : []
+        };
         
-        return data;
+        console.log('處理後的數據:', processedData);
+        
+        // 處理數據並更新UI
+        updateDashboardUI(processedData);
+        renderCharts(processedData);
+        renderExerciseStats(processedData.exercise_stats);
+        renderRecentExercises(processedData.recent_exercises);
+        
+        return processedData;
     } catch (error) {
         console.error('加載健身報告失敗:', error);
         throw error;
@@ -111,9 +122,21 @@ async function loadFitnessReport(userId) {
 
 // 渲染圖表
 function renderCharts(data) {
-    console.log('渲染圖表');
-    renderCaloriesChart(data.calories_trend);
-    renderMuscleGrowthChart(data.muscle_growth);
+    console.log('渲染圖表，數據:', data);
+    
+    try {
+        // 檢查 calories_trend 是否存在
+        if (!data.calories_trend) {
+            console.warn('數據中缺少 calories_trend 屬性');
+        } else {
+            console.log('calories_trend 數據:', data.calories_trend);
+        }
+        
+        renderCaloriesChart(data.calories_trend);
+        renderMuscleGrowthChart(data.muscle_growth);
+    } catch (error) {
+        console.error('渲染圖表時出錯:', error);
+    }
 }
 
 
@@ -176,6 +199,24 @@ function updateDashboardUI(data) {
     const totalCaloriesElement = document.getElementById('total-calories');
     if (totalCaloriesElement) {
         totalCaloriesElement.textContent = `${data.total_calories.toFixed(0)} 卡路里`;
+        
+        // 添加熱量百分比顯示
+        // 假設每日目標熱量消耗為300卡路里
+        const dailyCalorieGoal = 300;
+        const caloriePercentage = Math.min(100, Math.round((data.total_calories / dailyCalorieGoal) * 100));
+        
+        // 創建或更新百分比顯示元素
+        let caloriePercentElement = document.getElementById('calorie-percent');
+        if (!caloriePercentElement) {
+            caloriePercentElement = document.createElement('div');
+            caloriePercentElement.id = 'calorie-percent';
+            caloriePercentElement.className = 'stat-percentage';
+            totalCaloriesElement.parentNode.appendChild(caloriePercentElement);
+        }
+        
+        caloriePercentElement.textContent = `${caloriePercentage}% 目標`;
+        caloriePercentElement.style.color = caloriePercentage >= 80 ? '#2ecc71' : 
+                                           (caloriePercentage >= 50 ? '#f39c12' : '#e74c3c');
     }
     
     // 更新總訓練時間
@@ -202,7 +243,7 @@ function renderCaloriesChart(caloriesTrend) {
         return;
     }
     
-    console.log('渲染卡路里消耗趨勢圖:', caloriesTrend);
+    console.log('渲染卡路里消耗趨勢圖，原始數據:', caloriesTrend);
     
     // 如果已有圖表，先銷毀
     if (caloriesChart) {
@@ -210,7 +251,13 @@ function renderCaloriesChart(caloriesTrend) {
     }
     
     // 確保數據是數字類型
-    const values = Array.isArray(caloriesTrend) ? caloriesTrend.map(Number) : [];
+    let values = [];
+    if (Array.isArray(caloriesTrend)) {
+        values = caloriesTrend.map(val => Number(val) || 0);
+        console.log('轉換後的數值數組:', values);
+    } else {
+        console.warn('卡路里趨勢數據不是數組:', caloriesTrend);
+    }
     
     // 創建標籤（最近7天）
     const labels = [];
@@ -221,52 +268,62 @@ function renderCaloriesChart(caloriesTrend) {
     }
     
     // 如果數據少於7天，補充為7天
-    while (values.length < 7) {
-        values.unshift(0);
+    // 修改填充邏輯，確保實際數據在正確的日期位置
+    const paddedValues = Array(7).fill(0);
+    const startIdx = Math.max(0, 7 - values.length);
+    
+    for (let i = 0; i < values.length; i++) {
+        paddedValues[startIdx + i] = values[i];
     }
     
-    // 只取最近7天的數據
-    const recentValues = values.slice(-7);
+    console.log('填充後的數據陣列:', paddedValues);
+    console.log('對應的日期標籤:', labels);
     
-    caloriesChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '卡路里消耗',
-                data: recentValues,
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 2,
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: false
+    // 創建圖表
+    try {
+        caloriesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '卡路里消耗',
+                    data: paddedValues,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.y.toFixed(0)} 卡路里`;
+                            }
+                        }
+                    }
                 },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `${context.parsed.y.toFixed(0)} 卡路里`;
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '卡路里'
                         }
                     }
                 }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: '卡路里'
-                    }
-                }
             }
-        }
-    });
+        });
+        console.log('卡路里圖表創建成功');
+    } catch (error) {
+        console.error('創建卡路里圖表時出錯:', error);
+    }
 }
 
 
@@ -401,7 +458,7 @@ function renderMuscleGrowthChart(muscleData) {
     }
     
     // 確保數據是數字類型
-    const data = [
+    const rawData = [
         Number(muscleData.arms) || 0,
         Number(muscleData.chest) || 0,
         Number(muscleData.core) || 0,
@@ -409,13 +466,21 @@ function renderMuscleGrowthChart(muscleData) {
         Number(muscleData.shoulders) || 0
     ];
     
+    // 計算肌肉發展百分比
+    // 假設每個肌肉群的最大發展指數為1000
+    const maxMuscleIndex = 1000;
+    const percentageData = rawData.map(value => Math.min(100, Math.round((value / maxMuscleIndex) * 100)));
+    
+    // 創建肌肉發展百分比顯示
+    createMusclePercentageDisplay(percentageData);
+    
     muscleGrowthChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: ['手臂', '胸部', '核心', '腿部', '肩膀'],
             datasets: [{
                 label: '肌肉群發展',
-                data: data,
+                data: percentageData, // 使用百分比數據
                 backgroundColor: [
                     'rgba(255, 99, 132, 0.7)',
                     'rgba(54, 162, 235, 0.7)',
@@ -438,18 +503,79 @@ function renderMuscleGrowthChart(muscleData) {
             plugins: {
                 legend: {
                     display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `發展程度: ${context.parsed.y}%`;
+                        }
+                    }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
+                    max: 100, // 設置最大值為100%
                     title: {
                         display: true,
-                        text: '發展指數'
+                        text: '發展百分比 (%)'
                     }
                 }
             }
         }
+    });
+}
+
+
+
+// 創建肌肉發展百分比顯示
+function createMusclePercentageDisplay(percentageData) {
+    // 獲取圖表容器
+    const chartContainer = document.querySelector('.chart-container:nth-child(2)');
+    if (!chartContainer) return;
+    
+    // 檢查是否已存在百分比顯示容器
+    let percentContainer = document.getElementById('muscle-percentage-container');
+    if (!percentContainer) {
+        percentContainer = document.createElement('div');
+        percentContainer.id = 'muscle-percentage-container';
+        percentContainer.className = 'muscle-percentage-container';
+        chartContainer.appendChild(percentContainer);
+    } else {
+        // 清空現有內容
+        percentContainer.innerHTML = '';
+    }
+    
+    // 肌肉群名稱
+    const muscleNames = ['手臂', '胸部', '核心', '腿部', '肩膀'];
+    
+    // 創建每個肌肉群的百分比顯示
+    muscleNames.forEach((name, index) => {
+        const percentage = percentageData[index];
+        
+        const muscleItem = document.createElement('div');
+        muscleItem.className = 'muscle-percentage-item';
+        
+        const muscleName = document.createElement('span');
+        muscleName.className = 'muscle-name';
+        muscleName.textContent = name;
+        
+        const musclePercentage = document.createElement('span');
+        musclePercentage.className = 'muscle-percentage';
+        musclePercentage.textContent = `${percentage}%`;
+        
+        // 根據百分比設置顏色
+        if (percentage >= 70) {
+            musclePercentage.style.color = '#2ecc71'; // 綠色
+        } else if (percentage >= 40) {
+            musclePercentage.style.color = '#f39c12'; // 橙色
+        } else {
+            musclePercentage.style.color = '#e74c3c'; // 紅色
+        }
+        
+        muscleItem.appendChild(muscleName);
+        muscleItem.appendChild(musclePercentage);
+        percentContainer.appendChild(muscleItem);
     });
 }
 
@@ -565,37 +691,165 @@ function generateDefaultData() {
 }
 
 
-function renderCaloriesChart(data) {
-    const ctx = document.getElementById('calories-chart');
+function renderCaloriesChart(caloriesTrend) {
+    console.log('開始渲染卡路里圖表，原始數據:', caloriesTrend);
     
-    // 檢查是否已有圖表實例，如果有則先銷毀
-    if (ctx.chart) {
-        ctx.chart.destroy();
+    const ctx = document.getElementById('calories-chart');
+    if (!ctx) {
+        console.error('找不到卡路里圖表元素 #calories-chart');
+        return;
     }
     
-    ctx.chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.labels || ['週一', '週二', '週三', '週四', '週五', '週六', '週日'],
-            datasets: [{
-                label: '熱量消耗',
-                data: data.values || [0, 0, 0, 0, 0, 0, 0],
-                borderColor: '#3498db',
-                backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
+    console.log('找到卡路里圖表元素:', ctx);
+    
+    // 檢查 caloriesTrend 是否為有效數據
+    if (!caloriesTrend) {
+        console.error('卡路里趨勢數據為空或未定義');
+        // 創建一個空圖表，避免顯示錯誤
+        if (caloriesChart) {
+            caloriesChart.destroy();
+        }
+        
+        caloriesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['一', '二', '三', '四', '五', '六', '日'],
+                datasets: [{
+                    label: '卡路里消耗',
+                    data: [0, 0, 0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.y.toFixed(0)} 卡路里`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '卡路里'
+                        }
+                    }
                 }
             }
+        });
+        console.log('創建了空的卡路里圖表');
+        return;
+    }
+    
+    // 如果已有圖表，先銷毀
+    if (caloriesChart) {
+        console.log('銷毀舊的卡路里圖表');
+        caloriesChart.destroy();
+    }
+    
+    // 確保數據是數字類型的數組
+    let values = [];
+    if (Array.isArray(caloriesTrend)) {
+        values = caloriesTrend.map(val => {
+            const num = Number(val);
+            if (isNaN(num)) {
+                console.warn(`卡路里值 "${val}" 不是有效數字，將使用 0 代替`);
+                return 0;
+            }
+            return num;
+        });
+        console.log('處理後的卡路里數值數組:', values);
+    } else {
+        console.error('卡路里趨勢數據不是數組類型:', typeof caloriesTrend);
+        values = [0, 0, 0, 0, 0, 0, 0];
+    }
+    
+    // 創建標籤（最近7天）
+    const labels = [];
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('zh-TW', {month: 'short', day: 'numeric'}));
+    }
+    console.log('日期標籤:', labels);
+    
+    // 如果數據少於7天，補充為7天
+    const paddedValues = Array(7).fill(0);
+    
+    // 將實際數據放在數組末尾，確保最近的數據顯示在圖表右側
+    if (values.length <= 7) {
+        for (let i = 0; i < values.length; i++) {
+            paddedValues[7 - values.length + i] = values[i];
         }
-    });
+    } else {
+        // 如果數據超過7天，只取最近7天
+        for (let i = 0; i < 7; i++) {
+            paddedValues[i] = values[values.length - 7 + i];
+        }
+    }
+    
+    console.log('填充後的卡路里數據:', paddedValues);
+    
+    // 創建圖表
+    try {
+        caloriesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '卡路里消耗',
+                    data: paddedValues,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.y.toFixed(0)} 卡路里`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '卡路里'
+                        }
+                    }
+                }
+            }
+        });
+        console.log('成功創建卡路里圖表');
+    } catch (error) {
+        console.error('創建卡路里圖表時出錯:', error);
+    }
 }
+
+
 
 // 處理數據
 function processData(records) {
