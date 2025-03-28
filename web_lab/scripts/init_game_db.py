@@ -97,6 +97,10 @@ def create_game_tables():
 
         # 確保 user_completed_levels 表結構正確
         ensure_user_completed_levels_table()
+        
+        # 確保 user_achievements 表結構正確
+        ensure_user_achievements_table()
+        
         cursor.close()
         conn.close()
         
@@ -104,6 +108,7 @@ def create_game_tables():
     except Exception as e:
         logger.error(f"创建游戏表时出错: {e}")
         return False
+
 
 def insert_initial_levels(cursor, conn):
     """插入初始关卡数据"""
@@ -219,18 +224,19 @@ def ensure_user_completed_levels_table():
         table_exists = cursor.fetchone()
         
         if not table_exists:
-            # 創建用戶完成關卡表
+            # 創建用戶完成關卡表 - 使用 completed_at 而不是 completion_time
             cursor.execute("""
             CREATE TABLE user_completed_levels (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id VARCHAR(50) NOT NULL,
                 level_id INT NOT NULL,
-                completion_time DATETIME NOT NULL,
+                completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 exp_earned INT NOT NULL DEFAULT 0,
                 exercise_type VARCHAR(50),
                 exercise_count INT DEFAULT 0,
                 shield_value INT DEFAULT 0,
-                shield_weight FLOAT DEFAULT 1.0
+                shield_weight FLOAT DEFAULT 1.0,
+                INDEX (user_id)
             )
             """)
             logger.info("創建 user_completed_levels 表")
@@ -238,6 +244,11 @@ def ensure_user_completed_levels_table():
             # 檢查表結構
             cursor.execute("DESCRIBE user_completed_levels")
             columns = {row[0]: row for row in cursor.fetchall()}
+            
+            # 檢查是否有 completion_time 欄位，如果有則重命名為 completed_at
+            if 'completion_time' in columns and 'completed_at' not in columns:
+                cursor.execute("ALTER TABLE user_completed_levels CHANGE COLUMN completion_time completed_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+                logger.info("將 completion_time 列重命名為 completed_at")
             
             # 檢查是否缺少必要的列
             if 'shield_value' not in columns:
@@ -255,6 +266,10 @@ def ensure_user_completed_levels_table():
         return True
     except Exception as e:
         logger.error(f"確保 user_completed_levels 表結構正確時出錯: {e}")
+        if conn:
+            conn.rollback()
+            cursor.close()
+            conn.close()
         return False
 
 
@@ -294,6 +309,10 @@ def ensure_exercise_info_table():
             columns = {row[0]: row for row in cursor.fetchall()}
             
             # 檢查是否缺少必要的列
+            if 'completion_time' not in columns:
+                cursor.execute("ALTER TABLE exercise_info ADD COLUMN completion_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP")
+                logger.info("添加 completion_time 列到 exercise_info 表")
+            
             if 'game_level' not in columns:
                 cursor.execute("ALTER TABLE exercise_info ADD COLUMN game_level INT DEFAULT NULL")
                 logger.info("添加 game_level 列到 exercise_info 表")
@@ -312,3 +331,53 @@ def ensure_exercise_info_table():
         logger.error(f"確保 exercise_info 表結構正確時出錯: {e}")
         return False
 
+
+def ensure_user_achievements_table():
+    """確保 user_achievements 表結構正確"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            logger.error("無法連接到數據庫")
+            return False
+            
+        cursor = conn.cursor()
+        
+        # 檢查表是否存在
+        cursor.execute("SHOW TABLES LIKE 'user_achievements'")
+        table_exists = cursor.fetchone()
+        
+        if not table_exists:
+            # 創建用戶成就表
+            cursor.execute("""
+            CREATE TABLE user_achievements (
+                achievement_id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                achievement_name VARCHAR(100) NOT NULL,
+                achievement_description TEXT,
+                unlocked_at DATETIME NOT NULL,
+                icon_path VARCHAR(255)
+            )
+            """)
+            logger.info("創建 user_achievements 表")
+        else:
+            # 檢查表結構
+            cursor.execute("DESCRIBE user_achievements")
+            columns = {row[0]: row for row in cursor.fetchall()}
+            
+            # 檢查是否缺少必要的列
+            if 'achievement_name' not in columns:
+                cursor.execute("ALTER TABLE user_achievements ADD COLUMN achievement_name VARCHAR(100) NOT NULL AFTER user_id")
+                logger.info("添加 achievement_name 列到 user_achievements 表")
+            
+            if 'achievement_description' not in columns:
+                cursor.execute("ALTER TABLE user_achievements ADD COLUMN achievement_description TEXT AFTER achievement_name")
+                logger.info("添加 achievement_description 列到 user_achievements 表")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return True
+    except Exception as e:
+        logger.error(f"確保 user_achievements 表結構正確時出錯: {e}")
+        return False

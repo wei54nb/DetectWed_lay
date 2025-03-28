@@ -1,0 +1,1162 @@
+/* 健身报告样式 */
+.fitness-report {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.report-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.overview-item {
+    background: var(--light);
+    padding: 1.5rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.overview-icon {
+    font-size: 1.5rem;
+    color: var(--primary);
+    margin-right: 1rem;
+}
+
+.overview-title {
+    font-size: 0.9rem;
+    color: var(--gray);
+    margin-bottom: 0.5rem;
+}
+
+.overview-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+/* 圖表容器樣式 */
+.report-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+
+.chart-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.chart-container h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #333;
+    text-align: center;
+}
+
+.chart-title {
+    text-align: center;
+    margin-top: 1rem;
+    color: var(--gray);
+}
+
+.report-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.details-section {
+    background: var(--light);
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.exercise-stats,
+.recent-exercises {
+    margin-top: 1rem;
+}
+
+
+
+:root {
+    --primary: #3498db;
+    --secondary: #2ecc71;
+    --accent: #f39c12;
+    --danger: #e74c3c;
+    --dark: #2c3e50;
+    --light: #ecf0f1;
+    --gray: #95a5a6;
+    --white: #ffffff;
+    --black: #000000;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', Arial, sans-serif;
+}
+
+body {
+    background-color: #f8f9fa;
+    color: var(--dark);
+    line-height: 1.6;
+}
+
+/* ===== 頂部導航 ===== */
+.navbar {
+    background-color: var(--white);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 0.8rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-container img {
+    height: 40px;
+}
+
+.logo-container span {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.nav-link {
+    color: var(--dark);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+    position: relative;
+    padding: 0.5rem 0;
+}
+
+.nav-link:after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-color: var(--primary);
+    transition: width 0.3s;
+}
+
+.nav-link:hover {
+    color: var(--primary);
+}
+
+.nav-link:hover:after {
+    width: 100%;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-weight: 600;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.username {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.user-level {
+    font-size: 0.8rem;
+    color: var(--gray);
+}
+
+/* ===== 英雄區塊 ===== */
+.hero {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: var(--white);
+    padding: 3rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 2;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+    position: relative;
+    z-index: 2;
+}
+
+.hero-cta {
+    background-color: var(--white);
+    color: var(--primary);
+    padding: 0.8rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s;
+    display: inline-block;
+    position: relative;
+    z-index: 2;
+}
+
+.hero-cta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.hero-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.1;
+    background-image: url('/static/img/fitness-pattern.png');
+    background-size: cover;
+}
+
+/* ===== 進度區塊 ===== */
+.progress-section {
+    padding: 3rem 2rem;
+    background-color: var(--white);
+}
+
+.section-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.section-title h2 {
+    font-size: 2rem;
+    display: inline-block;
+}
+
+.section-title h2:after {
+    content: '';
+    display: block;
+    width: 50px;
+    height: 3px;
+    background-color: var(--primary);
+    margin: 0.5rem auto 0;
+}
+
+.stats-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background-color: var(--light);
+    border-radius: 10px;
+    padding: 1.5rem;
+    min-width: 200px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: var(--primary);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--dark);
+}
+
+.stat-label {
+    color: var(--gray);
+    font-size: 0.9rem;
+}
+
+.charts-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+}
+
+.chart-card {
+    background-color: var(--white);
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    flex: 1;
+    min-width: 300px;
+    max-width: 500px;
+    height: 300px; /* 添加固定高度 */
+    position: relative; /* 添加相对定位 */
+    overflow: hidden; /* 防止内容溢出 */
+}
+
+
+
+canvas {
+    width: 100% !important;
+    height: 250px !important; /* 设置画布固定高度 */
+}
+
+/* ===== 挑戰區塊 ===== */
+.challenges-section {
+    padding: 3rem 2rem;
+    background-color: var(--light);
+}
+
+.challenges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.challenge-card {
+    background-color: var(--white);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.challenge-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.challenge-img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+
+.challenge-content {
+    padding: 1.5rem;
+}
+
+.challenge-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.challenge-desc {
+    color: var(--gray);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.challenge-progress {
+    height: 8px;
+    background-color: var(--light);
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 4px;
+}
+
+.challenge-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--gray);
+}
+
+/* ===== 成就區塊 ===== */
+.achievements-section {
+    padding: 3rem 2rem;
+    background-color: var(--white);
+}
+
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.achievement-card {
+    background-color: var(--light);
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.achievement-card:hover {
+    transform: translateY(-5px);
+}
+
+.achievement-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    background-color: var(--white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--primary);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.achievement-locked .achievement-icon {
+    color: var(--gray);
+    background-color: #f1f1f1;
+}
+
+.achievement-title {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.achievement-desc {
+    font-size: 0.8rem;
+    color: var(--gray);
+}
+
+.achievement-locked {
+    opacity: 0.7;
+}
+
+/* ===== 底部區塊 ===== */
+.footer {
+    background-color: var(--dark);
+    color: var(--light);
+    padding: 2rem;
+    text-align: center;
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.footer-link {
+    color: var(--light);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.footer-link:hover {
+    color: var(--primary);
+}
+
+.footer-text {
+    font-size: 0.9rem;
+    color: var(--gray);
+}
+
+/* ===== 響應式設計 ===== */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 0.8rem 1rem;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .hero p {
+        font-size: 1rem;
+    }
+
+    .stats-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .stat-card {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .challenges-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .achievements-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ===== 動畫效果 ===== */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+/* ===== 遊戲化元素 ===== */
+.level-badge {
+    background-color: var(--accent);
+    color: var(--white);
+    padding: 0.3rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.xp-bar {
+    height: 6px;
+    background-color: var(--light);
+    border-radius: 3px;
+    margin: 0.5rem 0;
+    overflow: hidden;
+}
+
+.xp-progress {
+    height: 100%;
+    background-color: var(--accent);
+    border-radius: 3px;
+}
+
+.xp-text {
+    font-size: 0.8rem;
+    color: var(--gray);
+    text-align: right;
+}
+
+/* ===== 時間過濾器 ===== */
+.time-filters {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.time-button {
+    background-color: var(--light);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 50px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.time-button.active {
+    background-color: var(--primary);
+    color: var(--white);
+}
+
+.time-button:hover:not(.active) {
+    background-color: #e0e0e0;
+}
+
+/* ===== 遊戲化元素 - 冒險地圖修正 ===== */
+.workout-map {
+    position: relative;
+    margin: 4rem auto;
+    max-width: 800px;
+    padding: 0 1rem;
+}
+
+.map-path {
+    height: 8px;
+    background-color: var(--light);
+    border-radius: 5px;
+    position: relative;
+    margin: 3rem 0;
+}
+
+.map-progress {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    border-radius: 5px;
+    width: 65%; /* 示例進度 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.map-node {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--white);
+    border: 3px solid var(--light);
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray);
+    transition: all 0.3s;
+    z-index: 2;
+    cursor: pointer;
+}
+
+.map-node.completed {
+    background-color: var(--secondary);
+    border-color: var(--secondary);
+    color: var(--white);
+}
+
+.map-node.current {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: var(--white);
+    box-shadow: 0 0 0 5px rgba(52, 152, 219, 0.3);
+    animation: pulse 2s infinite;
+}
+
+.map-node:nth-child(2) { left: 0%; }
+.map-node:nth-child(3) { left: 25%; }
+.map-node:nth-child(4) { left: 50%; }
+.map-node:nth-child(5) { left: 75%; }
+.map-node:nth-child(6) { left: 100%; }
+
+.map-label {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    color: var(--dark);
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+
+        /* 關卡信息彈窗 */
+        .level-info {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    background-color: var(--white);
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    width: 220px;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.map-node:hover .level-info {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+}
+
+.level-info h4 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: var(--dark);
+}
+
+.level-info p {
+    font-size: 0.8rem;
+    color: var(--gray);
+    margin-bottom: 0.5rem;
+}
+
+.level-info .level-progress {
+    height: 6px;
+    background-color: var(--light);
+    border-radius: 3px;
+    margin: 0.5rem 0;
+    overflow: hidden;
+}
+
+.level-info .level-progress-bar {
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 3px;
+}
+
+.level-info .level-reward {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+/* 脈衝動畫 */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(52, 152, 219, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+    }
+}
+
+/* ===== 運動卡片 ===== */
+.workout-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 2rem;
+    margin: 3rem 0;
+}
+
+.workout-card {
+    background-color: var(--white);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.workout-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.workout-img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+}
+
+.workout-content {
+    padding: 1.5rem;
+}
+
+.workout-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.workout-desc {
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.workout-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.workout-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-number {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.stat-text {
+    font-size: 0.8rem;
+    color: var(--gray);
+}
+
+.workout-button {
+    background-color: var(--primary);
+    color: var(--white);
+    border: none;
+    padding: 0.8rem 0;
+    border-radius: 5px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.3s;
+}
+
+.workout-button:hover {
+    background-color: #2980b9;
+}
+
+/* ===== 動畫效果 ===== */
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s, transform 0.5s;
+}
+
+.fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ===== 遊戲化通知 ===== */
+.game-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--white);
+    border-left: 4px solid var(--primary);
+    padding: 1rem;
+    border-radius: 5px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 1000;
+    transform: translateX(120%);
+    transition: transform 0.5s;
+}
+
+.game-notification.show {
+    transform: translateX(0);
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    background-color: rgba(52, 152, 219, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 1.2rem;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-title {
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.notification-message {
+    font-size: 0.9rem;
+    color: var(--gray);
+}
+
+.close-notification {
+    background: none;
+    border: none;
+    color: var(--gray);
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+
+
+
+
+
+.error-message i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.error-message p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+
+/* 運動統計樣式 */
+.exercise-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--light);
+}
+
+
+.exercise-name {
+    font-weight: 500;
+}
+
+.exercise-count {
+    color: var(--gray);
+}
+
+
+/* 最近訓練記錄樣式 */
+.recent-exercise {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--light);
+}
+
+
+
+.exercise-date {
+    color: var(--gray);
+    font-size: 0.9rem;
+}
+
+.exercise-reps {
+    font-weight: 500;
+    color: var(--primary);
+}
+
+
+
+.empty-data-message {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin: 2rem 0;
+}
+
+.empty-data-message i {
+    font-size: 3rem;
+    color: #ccc;
+    margin-bottom: 1rem;
+}
+
+.empty-data-message p {
+    margin: 0.5rem 0;
+    font-size: 1rem;
+}
+
+.error-message {
+    color: #e74c3c;
+    background-color: #fadbd8;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+
+/* 手動輸入區樣式 */
+.manual-input-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.manual-input-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+#manual-user-id {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+#manual-load-btn {
+    padding: 0.75rem 1.5rem;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+}
+
+#manual-load-btn:hover {
+    background-color: #2980b9;
+}
+
+#loading-indicator {
+    color: #3498db;
+    text-align: center;
+    padding: 0.5rem;
+}
+
+/* 運動統計樣式 */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+
+.stat-item {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-name {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+
+.stat-count {
+    color: #3498db;
+    margin-bottom: 0.5rem;
+}
+
+
+.stat-bar {
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+
+
+.stat-bar-fill {
+    height: 100%;
+    background: #3498db;
+}
+
+
+/* 最近訓練記錄樣式 */
+.recent-list {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+
+.recent-item {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.recent-item:last-child {
+    border-bottom: none;
+}
+
+
+
+
+
+.recent-date {
+    color: #7f8c8d;
+}
+
+.recent-reps {
+    text-align: right;
+    color: #3498db;
+}
+
+.no-data {
+    text-align: center;
+    color: #7f8c8d;
+    padding: 1rem;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .report-charts {
+        grid-template-columns: 1fr;
+    }
+    
+    .recent-item {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .recent-exercise {
+        grid-column: 1 / -1;
+        margin-bottom: 0.5rem;
+    }
+}
